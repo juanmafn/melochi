@@ -4,7 +4,7 @@
       "id": "neutral",
       "nombre": { "es": "Tranquila", "en": "Chill" },
       "prioridad": 0,
-      "musica": { "playlists": [], "modo": "ninguno" },
+      "musica": { "playlists": [], "modo": "sugerir", "busqueda": ["chill acoustic", "lofi beats", "chill indie"] },
       "tono_chat": "normal, amistosa",
       "comportamiento": { "exploracion": 0.4, "habla_sola": 0.3, "travesuras": false, "velocidad": 1 }
     },
@@ -22,7 +22,7 @@
         ]
       },
       "animaciones": { "idle": "feliz_idle" },
-      "musica": { "playlists": [], "modo": "sugerir" },
+      "musica": { "playlists": [], "modo": "sugerir", "busqueda": ["happy upbeat", "feel good pop", "good vibes dance"] },
       "tono_chat": "alegre y juguetona, usa exclamaciones",
       "comportamiento": { "exploracion": 0.7, "habla_sola": 0.5, "travesuras": false, "velocidad": 1.2 }
     },

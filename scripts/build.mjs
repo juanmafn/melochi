@@ -28,6 +28,7 @@ const builds = [
     entryPoints: {
       'preload/overlay': join(root, 'src/preload/overlay.ts'),
       'preload/setup': join(root, 'src/preload/setup.ts'),
+      'preload/music': join(root, 'src/preload/music.ts'),
     },
     outdir: dist,
     platform: 'node',
@@ -40,6 +41,7 @@ const builds = [
     entryPoints: {
       'renderer/overlay': join(root, 'src/renderer/overlay/main.ts'),
       'renderer/setup': join(root, 'src/renderer/setup/main.ts'),
+      'renderer/music': join(root, 'src/renderer/music/main.ts'),
     },
     outdir: dist,
     platform: 'browser',

@@ -1,5 +1,5 @@
 import { clamp } from '../../shared/displays';
-import { VISIBLE_STATS, type DisplayInfo, type GameView, type InventoryView, type PanelId } from '../../shared/types';
+import { VISIBLE_STATS, type Choice, type DisplayInfo, type GameView, type InventoryView, type PanelId } from '../../shared/types';
 import { skinUrl } from './skin';
 
 type Vars = Record<string, string | number>;
@@ -33,20 +33,46 @@ function itemIcon(itemId: string, label: string, skinVersion: number): HTMLEleme
 export class Bubble {
   private root = el('div', 'bubble');
   private hideAt = 0;
+  private hasChoices = false;
 
-  constructor(parent: HTMLElement) {
+  constructor(
+    parent: HTMLElement,
+    private onChoose: (promptId: string, choiceId: string) => void,
+  ) {
     parent.appendChild(this.root);
   }
 
-  show(text: string): void {
-    this.root.textContent = text;
+  /** Muestra un bocadillo. Con `choices` lleva botones y no lo tapan otros bocadillos hasta que respondas. */
+  show(text: string, choices?: Choice[], promptId?: string, durationMs?: number): void {
+    if (this.hasChoices && !choices && this.root.classList.contains('visible')) return;
+    this.root.replaceChildren(el('span', 'bubble-text', text));
+    this.hasChoices = !!choices?.length && !!promptId;
+    this.root.classList.toggle('interactive', this.hasChoices);
+    if (this.hasChoices) {
+      const row = el('div', 'bubble-choices');
+      for (const c of choices!) {
+        const btn = el('button', `bubble-choice choice-${c.id}`, c.label);
+        btn.addEventListener('click', () => {
+          this.onChoose(promptId!, c.id);
+          this.hide();
+        });
+        row.appendChild(btn);
+      }
+      this.root.appendChild(row);
+    }
     this.root.classList.add('visible');
-    this.hideAt = performance.now() + 2500 + text.length * 60;
+    this.hideAt = performance.now() + (durationMs ?? 2500 + text.length * 60);
   }
 
   hide(): void {
-    this.root.classList.remove('visible');
+    this.root.classList.remove('visible', 'interactive');
+    this.hasChoices = false;
     this.hideAt = 0;
+  }
+
+  /** Hay una pregunta esperando respuesta. */
+  get waiting(): boolean {
+    return this.hasChoices && this.root.classList.contains('visible');
   }
 
   /** Se llama cada frame con la posición de la cabeza de la mascota. */
@@ -285,6 +311,18 @@ export class StatsPanel extends Panel {
     affBar.appendChild(affFill);
     affRow.append(el('span', 'stat-label', `${aff >= 0 ? '♥' : '💔'} ${ui.afinidad}`), affBar, el('span', 'stat-value', String(aff)));
     rows.push(affRow);
+
+    const m = view.music;
+    if (m.connected && m.track) {
+      const row = el('div', `now-playing${m.isPlaying ? '' : ' paused'}`);
+      const mark = m.opinion === 'favorito' ? ' ♥' : m.opinion === 'odiado' ? ' 💢' : '';
+      row.append(
+        el('span', 'stat-label', `🎵 ${ui.nowPlaying}`),
+        el('span', 'np-track', `${m.track.name} — ${m.track.artists.join(', ')}${mark}`),
+      );
+      if (m.hers) row.appendChild(el('span', 'np-hers', ui.herMusic));
+      rows.push(row);
+    }
 
     if (view.dndUntil > Date.now()) rows.push(el('div', 'dnd-badge', ui.dndBadge));
     this.body.replaceChildren(...rows);

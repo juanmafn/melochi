@@ -36,7 +36,7 @@ async function boot(): Promise<void> {
   const pet = new Pet(app.stage, display, displays, api);
   const input = new Input(pet, api);
   const sound = new SoundPlayer();
-  const bubble = new Bubble(uiRoot);
+  const bubble = new Bubble(uiRoot, (promptId, choiceId) => api.choose(promptId, choiceId));
   const ground = new GroundItems(uiRoot, display, (id) => api.collect(id));
   const inventory = new InventoryPanel(uiRoot, (slot) => api.useItem(slot), (x, y) => pet.hitTest(x, y));
   const stats = new StatsPanel(uiRoot);
@@ -64,6 +64,8 @@ async function boot(): Promise<void> {
   }
 
   app.ticker.add((t) => {
+    // Mientras espera tu respuesta en un bocadillo, se queda quieta para que puedas pulsar.
+    if (bubble.waiting) pet.hold();
     pet.update(t.deltaMS);
     bubble.update(pet.x, pet.y - pet.height, pet.owned, window.innerWidth);
     if (!pet.needsRender) {
@@ -107,8 +109,8 @@ async function boot(): Promise<void> {
   api.on('pet:go-home', () => pet.goHome());
 
   api.on('game:reaction', (r: Reaction) => {
-    if (r.anim) pet.react(r.anim);
-    if (r.bubble) bubble.show(r.bubble);
+    if (r.anim) pet.react(r.anim, r.animMs);
+    if (r.bubble) bubble.show(r.bubble, r.choices, r.promptId, r.durationMs);
     if (r.sound) sound.play(r.sound);
   });
 

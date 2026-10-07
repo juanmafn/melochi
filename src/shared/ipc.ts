@@ -13,6 +13,7 @@ export const toMain = {
   contextMenu: 'pet:context-menu',
   useItem: 'inventory:use',
   collect: 'ground:collect',
+  choose: 'bubble:choose',
 } as const;
 
 export const toOverlay = {
@@ -26,6 +27,17 @@ export const toOverlay = {
   say: 'game:say',
   skinReload: 'skin:reload',
   panel: 'ui:panel',
+} as const;
+
+export const musicChannels = {
+  getState: 'music:get-state',
+  setClientId: 'music:set-client-id',
+  connect: 'music:connect',
+  disconnect: 'music:disconnect',
+  setPlaylists: 'music:set-playlists',
+  test: 'music:test',
+  openDashboard: 'music:open-dashboard',
+  openConfig: 'music:open-config',
 } as const;
 
 export const setupChannels = {

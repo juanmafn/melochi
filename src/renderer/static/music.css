@@ -1,0 +1,169 @@
+main {
+  padding: 22px 26px 30px;
+}
+
+h1 {
+  margin-bottom: 14px;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.card p {
+  margin: 6px 0;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.error {
+  color: #c62828;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+ol {
+  padding-left: 20px;
+  margin: 8px 0 14px;
+}
+
+ol li {
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+ol input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-family: Consolas, monospace;
+}
+
+.copyrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+code {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  user-select: all;
+}
+
+button.primary {
+  width: 100%;
+}
+
+button.secondary {
+  margin-top: 0;
+  padding: 7px 12px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+button.secondary:hover {
+  background: var(--border);
+}
+
+button.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+button.link {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent-dark);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+button.link:hover {
+  background: none;
+}
+
+/* Moods */
+
+.mood {
+  border-top: 1px solid var(--border);
+  padding: 12px 0 4px;
+}
+
+.mood:first-child {
+  border-top: none;
+  padding-top: 4px;
+}
+
+.mood-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mood-name {
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px;
+  background: #ffe3d6;
+  font-size: 13px;
+}
+
+.chip button {
+  margin: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.chip button:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.mood select {
+  width: 100%;
+}
+
+.test-result {
+  font-size: 12px;
+  color: var(--muted);
+}

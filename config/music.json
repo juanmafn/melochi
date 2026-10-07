@@ -1,0 +1,39 @@
+{
+  // Gustos de la mascota: nombres de artistas tal como aparecen en Spotify (da igual mayúsculas o minúsculas).
+  "artistasFavoritos": [],
+  "artistasOdiados": [],
+
+  // Cada cuántos segundos mira qué está sonando en Spotify.
+  "consultaSegundos": 5,
+
+  "sugerencias": {
+    // Tiempo mínimo entre dos sugerencias de música.
+    "cooldownMinutos": 20,
+    // Si no suena nada durante este tiempo, te sugiere poner algo.
+    "silencioMinutos": 15,
+    // Tiempo que el bocadillo con [Sí] [No] espera tu respuesta.
+    "esperaRespuestaSegundos": 30,
+    // Canciones que pone cuando el mood no tiene playlist y tiene que buscar.
+    "cancionesPorBusqueda": 15
+  },
+
+  "travesura": {
+    // Búsquedas para su música "de fastidiar" cuando está cabreada.
+    "busquedas": ["halloween", "spooky", "horror movie soundtrack", "creepy music box", "this is halloween", "monster mash"],
+    "cancionesPorTravesura": 10,
+    // Probabilidad relativa de cada travesura musical.
+    "pesos": { "pausar": 3, "saltar": 3, "secuestrar": 2, "cola": 2 }
+  },
+
+  "efectos": {
+    "aceptar": { "carino": 4, "diversion": 3, "afinidad": 0.5 },
+    "rechazar": { "carino": -2 },
+    // Rechazar varias sugerencias seguidas la mosquea.
+    "rechazosParaMosqueo": 3,
+    "mosqueoPorRechazos": 8,
+    "saltarSuCancion": { "mosqueo": 5, "carino": -2 },
+    "abandonarSuMusica": { "mosqueo": 2 },
+    "artistaFavorito": { "diversion": 3 },
+    "artistaOdiado": { "mosqueo": 2 }
+  }
+}

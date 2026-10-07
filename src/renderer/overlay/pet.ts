@@ -20,6 +20,7 @@ const FALLBACK: Record<string, string> = {
   drink: 'eat',
   eat: 'happy',
   dance: 'happy',
+  mischief: 'angry',
   drag: 'fall',
   fall: 'idle',
   walk: 'idle',
@@ -177,12 +178,12 @@ export class Pet {
 
   // ---------- Órdenes ----------
 
-  react(anim: string): void {
+  react(anim: string, durationMs?: number): void {
     if (!this.owned || this.mode === 'dragged' || this.mode === 'fall') return;
     this.play(anim, true);
     const a = this.anim;
     const total = a ? a.frames.reduce((s, f) => s + f.duration, 0) : 0;
-    this.setMode('action', Math.max(MIN_ACTION_MS, a?.loop ? LOOPING_ACTION_MS : total));
+    this.setMode('action', durationMs ?? Math.max(MIN_ACTION_MS, a?.loop ? LOOPING_ACTION_MS : total));
   }
 
   /** El cursor está encima: se para un momento. */

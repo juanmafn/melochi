@@ -20,6 +20,8 @@
     "drink": {"frames":"anims/drink/","fps":8,"loop":true},
     "happy": {"frames":"anims/happy/","fps":10,"loop":true},
     "angry": {"frames":"anims/angry/","fps":12,"loop":true},
+    "dance": {"frames":"anims/dance/","fps":10,"loop":true},
+    "mischief": {"frames":"anims/mischief/","fps":10,"loop":true},
     "talk": {"frames":"anims/talk/","fps":8,"loop":true},
     "petted": {"frames":"anims/petted/","fps":8,"loop":true},
     "walk": {"sheet":"anims/walks.json","tag":"walk","loop":true},

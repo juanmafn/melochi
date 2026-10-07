@@ -54,7 +54,13 @@ export interface MoodDef {
   condiciones?: Condition;
   /** Sobrescribe animaciones: { "idle": "feliz_idle" }. */
   animaciones?: Record<string, string>;
-  musica?: { playlists?: string[]; modo?: 'sugerir' | 'travesura' | 'ninguno' };
+  musica?: {
+    /** URIs de playlists (además de las que se asignan en la ventana de Música). */
+    playlists?: string[];
+    modo?: 'sugerir' | 'travesura' | 'ninguno';
+    /** Búsquedas de canciones si no hay playlist asignada. */
+    busqueda?: string[];
+  };
   sonidos?: Record<string, string[]>;
   tono_chat?: string;
   comportamiento?: MoodBehavior;
@@ -147,9 +153,44 @@ export interface StatsConfig {
   interacciones: Record<InteractionType, Partial<Record<StatOrAffinity, number>>>;
   /** Probabilidad de que rechace caricias cuando está en un mood con travesuras. */
   rechazoCariciasCabreada: number;
+  /** Minutos mínimos entre travesuras (musicales o de escritorio). */
+  travesuraCooldownMinutos: number;
   /** Usos de "No molestar" en 24 h a partir de los cuales se mosquea. */
   noMolestarUsosLibres: number;
   noMolestarMosqueo: number;
+}
+
+export type StatDelta = Partial<Record<StatOrAffinity, number>>;
+export type MischiefKind = 'pausar' | 'saltar' | 'secuestrar' | 'cola';
+
+export interface MusicConfig {
+  /** Nombres de artistas (sin distinguir mayúsculas). */
+  artistasFavoritos: string[];
+  artistasOdiados: string[];
+  /** Segundos entre consultas a Spotify de lo que está sonando. */
+  consultaSegundos: number;
+  sugerencias: {
+    cooldownMinutos: number;
+    /** Si no suena nada durante estos minutos, sugiere música. */
+    silencioMinutos: number;
+    esperaRespuestaSegundos: number;
+    cancionesPorBusqueda: number;
+  };
+  travesura: {
+    busquedas: string[];
+    cancionesPorTravesura: number;
+    pesos: Record<MischiefKind, number>;
+  };
+  efectos: {
+    aceptar: StatDelta;
+    rechazar: StatDelta;
+    rechazosParaMosqueo: number;
+    mosqueoPorRechazos: number;
+    saltarSuCancion: StatDelta;
+    abandonarSuMusica: StatDelta;
+    artistaFavorito: StatDelta;
+    artistaOdiado: StatDelta;
+  };
 }
 
 // ---------- Estado de juego ----------
@@ -218,14 +259,37 @@ export interface GameView {
   dndUntil: number;
   muted: boolean;
   volume: number;
+  music: MusicView;
   /** Textos de la interfaz en el idioma actual. */
   ui: Record<string, string>;
 }
 
+export interface MusicView {
+  connected: boolean;
+  track: { name: string; artists: string[] } | null;
+  isPlaying: boolean;
+  /** La está poniendo ella. */
+  hers: boolean;
+  /** Opinión de la mascota sobre lo que suena. */
+  opinion: 'favorito' | 'odiado' | null;
+}
+
+export interface Choice {
+  id: string;
+  label: string;
+}
+
 export interface Reaction {
   anim?: string;
+  /** Cuánto dura la animación (ms). Por defecto, lo que dure la animación (mín. 1,2 s). */
+  animMs?: number;
   bubble?: string;
   sound?: string;
+  /** Botones en el bocadillo (p. ej. aceptar o rechazar una sugerencia de música). */
+  choices?: Choice[];
+  promptId?: string;
+  /** Cuánto se queda el bocadillo (ms). */
+  durationMs?: number;
 }
 
 export interface OverlayInit {
@@ -246,6 +310,29 @@ export interface OwnMessage {
 }
 
 export type PanelId = 'inventory' | 'stats';
+
+// ---------- Ventana de Música ----------
+
+export interface PlaylistRef {
+  uri: string;
+  name: string;
+  owner?: string;
+}
+
+export interface MusicWindowState {
+  connected: boolean;
+  user: string | null;
+  clientId: string;
+  redirectUri: string;
+  /** Moods que sugieren música, con sus playlists asignadas. */
+  moods: { id: string; nombre: string; playlists: PlaylistRef[]; busqueda: string[] }[];
+  /** Playlists de tu biblioteca (solo si hay conexión). */
+  library: PlaylistRef[];
+  favoritos: string[];
+  odiados: string[];
+  strings: Record<string, string>;
+  error: string | null;
+}
 
 // ---------- Skins ----------
 

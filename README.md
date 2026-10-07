@@ -2,7 +2,17 @@
 
 Mascota de escritorio tipo Tamagotchi para Windows. El diseño completo está en [docs/GDD.md](docs/GDD.md).
 
-**Estado:** fase 1 (mascota viva). Spotify, el chat con IA y los minijuegos llegan en las siguientes fases.
+**Estado:** fases 1 (mascota viva) y 2 (Spotify). El chat con IA y los minijuegos llegan en las siguientes fases.
+
+## Conectar Spotify
+
+Necesitas Spotify Premium. En el menú de la mascota: **Ajustes → Música…**, y sigue los pasos:
+
+1. Crea una app en el [panel de desarrolladores de Spotify](https://developer.spotify.com/dashboard).
+2. Añade la Redirect URI `http://127.0.0.1:8977/callback` y marca «Web API».
+3. Copia el Client ID en la ventana de Música y pulsa «Conectar con Spotify».
+
+Después asigna playlists a cada estado de ánimo en esa misma ventana. Los artistas que le gustan y los que odia se editan en `config/music.json`.
 
 ## Requisitos
 
@@ -48,13 +58,14 @@ En desarrollo, todo se lee directamente de las carpetas del proyecto y se recarg
 | `config/moods.json` | Estados de ánimo: condiciones, animaciones, comportamiento (y en la fase 2, playlists). |
 | `config/items.json` | Objetos y sus efectos. |
 | `config/loot.json` | Qué objetos suelta con cada actividad. |
+| `config/music.json` | Sus artistas favoritos y odiados, búsquedas de su música de travesura, tiempos de las sugerencias y efectos en sus stats. |
 | `locales/es.json`, `locales/en.json` | Textos y frases de los bocadillos. |
 
 ### Formato de las skins
 
 Cada animación puede ser una **carpeta de PNG numerados** o una **sprite sheet** exportada desde Aseprite o TexturePacker (JSON en formato hash o array, sin rotación). Las variantes por mood se llaman `<mood>_<animación>` (por ejemplo `feliz_idle`); si no existen, se usa la genérica. La skin provisional incluye ejemplos de los tres casos.
 
-Animaciones que usa el juego: `idle`, `walk`, `drag`, `fall`, `eat`, `drink`, `happy`, `angry`, `talk`, `petted`. Solo `idle` es obligatoria: el resto, si faltan, se sustituyen por la más parecida.
+Animaciones que usa el juego: `idle`, `walk`, `drag`, `fall`, `eat`, `drink`, `happy`, `angry`, `talk`, `petted`, `dance`, `mischief`. Solo `idle` es obligatoria: el resto, si faltan, se sustituyen por la más parecida.
 
 Los iconos de los objetos van en `skins/<nombre>/items/<id>.png`.
 
@@ -76,3 +87,5 @@ En `tools/` hay scripts que se conectan a esos puertos:
 | `tools/interact.mjs` | Simula toques, cosquillas, caricias, abrir paneles, dar objetos y recoger drops. |
 | `tools/realmouse.mjs` | Prueba con el ratón real de Windows: clic a través, arrastrar, lanzar y menú contextual. Mueve tu cursor. |
 | `tools/exstyle.mjs` | Muestra si la ventana deja pasar el ratón (`WS_EX_TRANSPARENT`). |
+| `tools/music.mjs` | Prueba Spotify: sugerencias, saltar su canción, travesuras, gustos y el Vinilo misterioso. **Pone música de verdad.** |
+| `tools/watch.mjs` | Vigila durante N segundos los cambios de mood, bocadillos y canción (opcionalmente tras ejecutar algo en main). |

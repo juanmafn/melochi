@@ -1,6 +1,6 @@
 # Melochi — Documento de diseño (GDD)
 
-> Borrador v0.3 · 2026-10-07 · Estado: **diseño completo, listo para implementar**
+> v0.4 · 2026-10-07 · Estado: **fase 1 implementada, fase 2 (Spotify) en pruebas**
 
 ## 1. Concepto
 
@@ -115,28 +115,34 @@ Moods de ejemplo incluidos: **`neutral`** (obligatorio, fallback), **`feliz`** y
 
 **Requisito:** Spotify Premium (el usuario lo tiene). Se usa la Web API de Spotify con OAuth PKCE.
 
-> Limitación conocida: Spotify ha retirado para apps nuevas las recomendaciones y las *audio features* (energía, valencia, tempo), y está recortando más datos. Por eso **la música por mood se basa en playlists que asigna el usuario**, no en clasificación automática.
+**Conexión:** Spotify exige que cada usuario cree su propia app de desarrollador (modo desarrollo: máx. 5 usuarios, el dueño necesita Premium). La ventana **Ajustes → Música…** guía los pasos: crear la app, añadir la Redirect URI `http://127.0.0.1:8977/callback`, pegar el Client ID y conectar. El token se guarda cifrado con la protección de datos de Windows.
+
+> Limitaciones de la API (cambios de noviembre 2024 y febrero 2026): sin recomendaciones, sin *audio features*, sin "canciones top de un artista", sin popularidad ni playlists editoriales, búsqueda limitada a 10 resultados, y solo se pueden **leer** las canciones de playlists propias (pero se puede **reproducir** cualquiera). Por eso la música por mood se basa en playlists que asigna el usuario o en búsquedas configurables.
 
 ### 5.1 Comportamiento normal: sugiere y tú aceptas
-- Cuando cambia de mood (o tras un rato), muestra un bocadillo: *"¿Pongo algo alegre? 🎵"* con botones **[Sí] [No]**.
-- **Aceptar** → reproduce una playlist del mood + sube Cariño.
-- **Rechazar** → baja un poco Cariño; rechazar muchas seguidas sube Mosqueo.
-- Cooldown entre sugerencias (p. ej. 20 min, configurable).
-- En el chat también puedes pedirle: *"ponme algo tranquilo"*.
+- Cuando cambia a un mood con `modo: "sugerir"`, o si no suena nada durante 15 min, muestra un bocadillo: *"¿Pongo algo alegre? 🎵"* con botones **[¡Sí!] [Ahora no]**. Mientras espera respuesta (30 s), se queda quieta.
+- **Aceptar** → reproduce una de las playlists asignadas al mood (en aleatorio) o, si no hay ninguna, canciones buscadas con las palabras de `musica.busqueda` del mood. Sube Cariño y Diversión, y puede soltar un objeto.
+- **Rechazar** → baja un poco Cariño; 3 rechazos seguidos suben Mosqueo.
+- Cooldown entre sugerencias: 20 min. Todo configurable en `config/music.json`.
+- Las playlists de cada mood se asignan en la ventana de Música (con botón ▶ Probar).
+- En el chat también podrás pedirle: *"ponme algo tranquilo"* (fase 3).
 
 ### 5.2 Gustos musicales
-- Tiene **artistas/canciones favoritas y odiadas** (lista en su config + las que "descubre" con el uso).
-- Suena algo que le gusta → baila, comenta, sube Diversión.
-- Suena algo que odia → gruñe, cara de asco, puede sugerirte cambiar.
-- **Saltar una canción que puso ella** → sube Mosqueo.
-- El LLM puede opinar sobre la canción que suena (artista + título).
-- **Baile al ritmo** (opcional): detección de beat analizando el audio del sistema en local (loopback), sin depender de Spotify.
+- Sus **artistas favoritos y odiados los define el usuario** en `config/music.json`.
+- Suena un favorito → baila (animación `dance`), lo comenta y sube Diversión.
+- Suena uno odiado → gruñe y sube un poco el Mosqueo.
+- **Saltar una canción que puso ella** → sube Mosqueo. Cambiar a otra música mientras suena la suya → se mosquea un poco.
+- El panel de Estado muestra lo que suena, si lo ha puesto ella y su opinión.
+- El LLM podrá opinar sobre la canción que suena (fase 3).
+- **Baile al ritmo** (opcional, fase 4): detección de beat analizando el audio del sistema en local.
 
 ### 5.3 Travesuras musicales (solo en mood con `modo: "travesura"`)
 - Pausar la música.
 - Saltar la canción que estás escuchando.
-- Secuestrar la playlist: cambiar a su playlist spooky/Halloween/hortera.
-- Llenarte la cola con canciones "suyas".
+- Secuestrar la música: pone canciones spooky que **busca ella sola** (búsquedas editables en `config/music.json`; no crea ni modifica nada en tu cuenta).
+- Llenarte la cola con canciones spooky.
+- Pausar, saltar y la cola solo ocurren si estás escuchando algo; si no suena nada, lo que hace es poner su música.
+- Animación `mischief` (risa de diablillo).
 
 Reglas:
 - **Máximo 1 travesura cada 10 minutos** (musical o de escritorio, cuentan juntas; configurable).
@@ -144,7 +150,7 @@ Reglas:
 - Se le pasa cuidándola.
 
 ### 5.4 Travesura de bienvenida 😈
-Si cerraste el programa con ella cabreada, al volver a abrirlo **te recibe con una travesura** a los 5–10 segundos, con un bocadillo tipo *"¿Ahora vuelves?"*. Si al abrir estás en un modo seguro (juego, llamada…), espera a que termine. Esta travesura no consume el cooldown de 10 minutos.
+Si cerraste el programa con ella cabreada, al volver a abrirlo **te recibe con una travesura** a los 5–10 segundos, con un bocadillo tipo *"¿Ahora vuelves?"*. Si al abrir estás en un modo seguro (juego, llamada…), espera a que termine. Esta travesura no tiene que esperar al cooldown de 10 minutos, pero sí lo reinicia (para que no lleguen dos seguidas).
 
 ---
 

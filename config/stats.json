@@ -26,6 +26,7 @@
     "throwHard": { "diversion": 1, "mosqueo": 3 }
   },
   "rechazoCariciasCabreada": 0.5,
+  "travesuraCooldownMinutos": 10,
   "noMolestarUsosLibres": 3,
   "noMolestarMosqueo": 5
 }

@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+    <title>Melochi</title>
+    <link rel="stylesheet" href="setup.css" />
+    <link rel="stylesheet" href="music.css" />
+  </head>
+  <body>
+    <main>
+      <h1 data-s="title"></h1>
+
+      <section class="card" id="conn">
+        <h2 data-s="connTitle"></h2>
+        <div id="connected" hidden>
+          <p id="status"></p>
+          <button id="disconnect" class="secondary" data-s="disconnect"></button>
+        </div>
+        <div id="setup" hidden>
+          <p class="hint" data-s="setupIntro"></p>
+          <ol>
+            <li>
+              <span data-s="step1"></span>
+              <button id="dashboard" class="link" data-s="openDashboard"></button>
+            </li>
+            <li>
+              <span data-s="step2"></span>
+              <div class="copyrow">
+                <code id="redirect"></code>
+                <button id="copy" class="secondary small" data-s="copy"></button>
+              </div>
+            </li>
+            <li><span data-s="step3"></span></li>
+            <li>
+              <span data-s="step4"></span>
+              <input id="clientId" maxlength="32" autocomplete="off" spellcheck="false" />
+            </li>
+          </ol>
+          <button id="connect" class="primary" data-s="connect"></button>
+        </div>
+        <p id="error" class="error" hidden></p>
+      </section>
+
+      <section class="card" id="moodsCard" hidden>
+        <h2 data-s="moodsTitle"></h2>
+        <p class="hint" data-s="moodsHint"></p>
+        <div id="moodList"></div>
+      </section>
+
+      <section class="card">
+        <h2 data-s="tastesTitle"></h2>
+        <p><strong data-s="favorites"></strong> <span id="favs"></span></p>
+        <p><strong data-s="hated"></strong> <span id="hated"></span></p>
+        <p class="hint" data-s="tastesHint"></p>
+        <button id="openConfig" class="secondary" data-s="openConfig"></button>
+      </section>
+    </main>
+    <script type="module" src="music.js"></script>
+  </body>
+</html>

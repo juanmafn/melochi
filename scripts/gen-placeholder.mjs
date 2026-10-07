@@ -152,6 +152,12 @@ function sparkle(img, x, y, s, color = C.gold) {
 function drop(img, x, y, s, color = C.sky) {
   img.fill(union(circle(x, y + s * 0.4, s * 0.6), polygon([[x - s * 0.55, y + s * 0.2], [x + s * 0.55, y + s * 0.2], [x, y - s * 0.9]])), color);
 }
+/** Nota musical (corchea). */
+function note(img, x, y, a = 1) {
+  img.fill(ellipse(x, y + 6, 4, 3), C.ink, a);
+  img.fill(segment(x + 3.4, y + 5, x + 3.4, y - 8, 1.1), C.ink, a);
+  img.fill(segment(x + 3.4, y - 8, x + 8, y - 4, 1.3), C.ink, a);
+}
 function puff(img, x, y, s, a) {
   img.fill(union(circle(x, y, s), circle(x + s * 0.8, y + s * 0.2, s * 0.75), circle(x - s * 0.8, y + s * 0.2, s * 0.7)), C.steam, a);
 }
@@ -406,6 +412,49 @@ const ANIMS = {
         const x = g.cx + g.rx - 8;
         const y = g.cy - g.ry + 4;
         for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) img.fill(arc(x + dx * 4.5, y + dy * 4.5, 3, 3, 1.3, dy < 0 ? 'bottom' : 'top'), hex('#d62828'));
+      },
+    }),
+  },
+  dance: {
+    n: 8,
+    fps: 10,
+    loop: true,
+    f: (i) => ({
+      dx: sin(i, 8, 6),
+      dy: -Math.abs(sin(i, 8, 6, Math.PI / 2)),
+      sx: 1 + sin(i, 8, 0.05, Math.PI / 2),
+      sy: 1 - sin(i, 8, 0.05, Math.PI / 2),
+      eyes: 'happy',
+      mouth: 'bigsmile',
+      cheeks: true,
+      antenna: sin(i, 8, 0.45),
+      feet: [[sin(i, 8, 4), -Math.max(0, sin(i, 8, 5))], [sin(i, 8, 4), -Math.max(0, -sin(i, 8, 5))]],
+      extras: (img, g) => {
+        const t = i / 8;
+        note(img, g.cx - g.rx - 6, g.cy - 6 - t * 18, 1 - t * 0.6);
+        note(img, g.cx + g.rx + 4, g.cy - 20 - ((t + 0.5) % 1) * 18, 1 - ((t + 0.5) % 1) * 0.6);
+      },
+    }),
+  },
+  mischief: {
+    n: 6,
+    fps: 10,
+    loop: true,
+    f: (i) => ({
+      color: C.red,
+      dx: [-1.5, 1.5, -1, 1, -1.5, 1.5][i],
+      sy: 1 + [0, 0.03, 0, 0.03, 0, 0.03][i],
+      eyes: 'angry',
+      mouth: 'bigsmile',
+      look: 0,
+      antenna: [-0.25, 0.25, -0.2, 0.2, -0.25, 0.25][i],
+      extras: (img, g) => {
+        // Cuernecitos de diablillo
+        for (const s of [-1, 1]) {
+          const x = g.cx + s * 20;
+          const y = g.cy - g.ry + 8;
+          img.outlined(polygon([[x - 6, y + 2], [x + 6, y + 2], [x + s * 6, y - 12]]), hex('#d62828'), 1.5, hex('#7a1c1c'));
+        }
       },
     }),
   },

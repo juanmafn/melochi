@@ -10,8 +10,12 @@ import { buildPetMenu, type MenuActions } from './menu';
 import { OverlayManager } from './overlays';
 import { resolvePaths } from './paths';
 import { loadSave, loadSettings, newSave, writeSave, writeSettings } from './save';
+import { MusicWindow } from './music-window';
 import { runSetup } from './setup-window';
 import { SKIN_SCHEME, SkinManager } from './skins';
+import { SpotifyApi } from './spotify/api';
+import { SpotifyAuth } from './spotify/auth';
+import { MusicDirector } from './spotify/director';
 
 app.setName('Melochi');
 app.setAppUserModelId('Melochi');
@@ -103,13 +107,32 @@ async function start(): Promise<void> {
       changed: pushState,
       react: (r) => overlays.sendToOwner(toOverlay.reaction, r),
       petSpot: () => overlays.petSpot(),
+      moodChanged: (mood) => director.onMoodChanged(mood),
+      welcomeMischief: () => director.mischief(true),
+      special: (name) => director.special(name),
     },
     firstRun,
   );
 
+  // ---------- Spotify ----------
+
+  const auth = new SpotifyAuth(join(paths.userData, 'spotify-token.bin'), () => settings.spotify.clientId);
+  const api = new SpotifyApi(auth);
+  const director: MusicDirector = new MusicDirector(game, api, auth, i18n, settings);
+  const musicWindow = new MusicWindow({
+    paths,
+    i18n,
+    settings,
+    game,
+    auth,
+    api,
+    director,
+    saveSettings: () => writeSettings(paths.settings, settings),
+  });
+
   overlays.start(save.pose);
   // Acceso para depurar con --inspect (no lo usa el juego).
-  if (!app.isPackaged) Object.assign(globalThis, { __melochi: { game, overlays, skins, settings } });
+  if (!app.isPackaged) Object.assign(globalThis, { __melochi: { game, overlays, skins, settings, director, api, musicWindow } });
 
   const persist = () => {
     const spot = overlays.petSpot();
@@ -122,6 +145,7 @@ async function start(): Promise<void> {
 
   const actions: MenuActions = {
     openPanel: (panel: PanelId) => overlays.sendToOwner(toOverlay.panel, { panel, open: true }),
+    openMusic: () => musicWindow.open(),
     setDnd: (min) => game.setDnd(min),
     goHome: () => overlays.goHome(),
     setHomeHere: () => {
@@ -170,6 +194,7 @@ async function start(): Promise<void> {
     if (Number.isInteger(index)) game.useItem(index);
   });
   ipcMain.on(toMain.collect, (_e, id: string) => game.collect(String(id)));
+  ipcMain.on(toMain.choose, (_e, promptId: string, choice: string) => void director.answer(String(promptId), String(choice)));
   ipcMain.on(toMain.contextMenu, (e) => {
     const win = BrowserWindow.fromWebContents(e.sender);
     if (!win) return;
@@ -193,6 +218,7 @@ async function start(): Promise<void> {
   setInterval(() => {
     const now = Date.now();
     game.tick(now - last);
+    director.tick();
     last = now;
   }, 1000);
   setInterval(persist, AUTOSAVE_MS);

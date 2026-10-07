@@ -5,6 +5,7 @@ import type { Settings } from './save';
 
 export interface MenuActions {
   openPanel(panel: PanelId): void;
+  openMusic(): void;
   setDnd(minutes: number): void;
   goHome(): void;
   setHomeHere(): void;
@@ -48,6 +49,8 @@ export function buildPetMenu(i18n: I18n, settings: Settings, a: MenuActions): Me
     {
       label: t('settings'),
       submenu: [
+        { label: t('music'), click: () => a.openMusic() },
+        { type: 'separator' },
         {
           label: t('language'),
           submenu: LANGS.map((lang) => ({

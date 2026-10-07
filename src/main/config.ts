@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { ItemDef, ItemsConfig, LootConfig, MoodsConfig, StatsConfig } from '../shared/types';
+import type { ItemDef, ItemsConfig, LootConfig, MoodsConfig, MusicConfig, StatsConfig } from '../shared/types';
 import { readJson } from './jsonfile';
 
 export interface GameConfig {
@@ -7,6 +7,7 @@ export interface GameConfig {
   moods: MoodsConfig;
   items: ItemsConfig;
   loot: LootConfig;
+  music: MusicConfig;
   itemMap: Map<string, ItemDef>;
 }
 
@@ -16,6 +17,7 @@ export function loadConfig(dir: string): GameConfig {
   const moods = readJson<MoodsConfig>(join(dir, 'moods.json'));
   const items = readJson<ItemsConfig>(join(dir, 'items.json'));
   const loot = readJson<LootConfig>(join(dir, 'loot.json'));
+  const music = readJson<MusicConfig>(join(dir, 'music.json'));
 
   if (!moods.moods?.some((m) => m.id === 'neutral')) {
     throw new Error('moods.json: falta el mood "neutral" (es el que se usa por defecto).');
@@ -36,5 +38,5 @@ export function loadConfig(dir: string): GameConfig {
     if (!itemMap.has(start.item)) throw new Error(`items.json: inventarioInicial usa "${start.item}", que no existe.`);
   }
 
-  return { stats, moods, items, loot, itemMap };
+  return { stats, moods, items, loot, music, itemMap };
 }

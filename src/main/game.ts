@@ -7,7 +7,9 @@ import {
   type InventoryView,
   type ItemDef,
   type MoodDef,
+  type MusicView,
   type Reaction,
+  type StatDelta,
   type StatId,
   type StatOrAffinity,
 } from '../shared/types';
@@ -35,11 +37,18 @@ export interface GameHooks {
   react(r: Reaction): void;
   /** Dónde está ahora la mascota (para soltar objetos a su lado). */
   petSpot(): PetSpot | null;
+  /** Ha cambiado de mood (después de mostrar la reacción). */
+  moodChanged?(mood: MoodDef): void;
+  /** Travesura de bienvenida (volviste y la dejaste cabreada). Devuelve true si se ha hecho alguna. */
+  welcomeMischief?(): Promise<boolean>;
+  /** Efecto especial de un objeto. Devuelve true si se encarga él del bocadillo. */
+  special?(name: string): boolean;
 }
 
 const MINUTE = 60_000;
 const NEED_BUBBLE_COOLDOWN = 15 * MINUTE;
 const REACTION_BUBBLE_GAP = 2500;
+const WELCOME_MISCHIEF_DELAY = 3500;
 const LOOT_FOR: Partial<Record<InteractionType, string>> = {
   pet: 'pet',
   tickle: 'tickle',
@@ -59,6 +68,8 @@ export class Game {
   private nextChatterAt = Date.now() + 90_000;
   private welcome: 'first' | 'back' | 'angry' | null;
   private welcomeAt = Date.now() + 4000;
+  private lastMischiefAt = 0;
+  private music: MusicView = { connected: false, track: null, isPlaying: false, hers: false, opinion: null };
 
   constructor(
     private cfg: GameConfig,
@@ -97,6 +108,41 @@ export class Game {
 
   get dndActive(): boolean {
     return this.settings.dndUntil > Date.now();
+  }
+
+  get config(): GameConfig {
+    return this.cfg;
+  }
+
+  /** ¿Puede hacer una travesura ahora? (mood con travesuras, sin "No molestar" y pasado el tiempo de espera). */
+  canMischief(): boolean {
+    return (
+      this.isGrumpy &&
+      !this.dndActive &&
+      !this.welcome &&
+      Date.now() - this.lastMischiefAt >= this.cfg.stats.travesuraCooldownMinutos * MINUTE
+    );
+  }
+
+  markMischief(): void {
+    this.lastMischiefAt = Date.now();
+  }
+
+  setMusic(music: MusicView): void {
+    if (JSON.stringify(music) === JSON.stringify(this.music)) return;
+    this.music = music;
+    this.hooks.changed();
+  }
+
+  /** Aplica cambios a las stats desde fuera (música, minijuegos...). */
+  adjust(delta: StatDelta | undefined): void {
+    this.applyStats(delta);
+    this.hooks.changed();
+  }
+
+  /** Reacción de la mascota desde fuera del motor. */
+  say(r: Reaction, important = true): void {
+    this.react(r, important);
   }
 
   private read = (stat: StatOrAffinity): number => (stat === 'afinidad' ? this.save.afinidad : this.save.stats[stat]);
@@ -174,6 +220,7 @@ export class Game {
       },
       true,
     );
+    this.hooks.moodChanged?.(candidate);
   }
 
   private updateWelcome(now: number): void {
@@ -183,8 +230,11 @@ export class Game {
     if (this.welcome === 'first') {
       this.react({ anim: 'happy', sound: 'saludo', bubble: this.i18n.bubble('welcomeFirst', { name }) }, true);
     } else if (this.welcome === 'angry') {
-      // Travesura de bienvenida. Las travesuras musicales llegan con Spotify (fase 2).
+      // Travesura de bienvenida: no espera al tiempo entre travesuras. Llega un poco después del
+      // "¿Ahora vuelves?" para que dé tiempo a leerlo; mientras, no se permiten otras travesuras.
       this.react({ anim: 'angry', sound: 'grunido', bubble: this.i18n.bubble('welcomeAngry', { name }) }, true);
+      this.lastMischiefAt = Date.now();
+      setTimeout(() => void this.hooks.welcomeMischief?.(), WELCOME_MISCHIEF_DELAY);
     } else {
       this.react({ anim: 'happy', sound: 'saludo', bubble: this.i18n.bubble('welcomeBack', { name }) }, true);
     }
@@ -395,6 +445,9 @@ export class Game {
     const defaultAnim = def.categoria === 'comida' ? 'eat' : def.categoria === 'bebida' ? 'drink' : 'happy';
     const sound = def.categoria === 'comida' ? 'comer' : def.categoria === 'bebida' ? 'beber' : 'risa';
     if (hated) return { anim: 'angry', sound: 'grunido', bubble: this.i18n.bubble('hated') };
+    if (def.efectos.especial && this.hooks.special?.(def.efectos.especial)) {
+      return { anim: def.animacion ?? defaultAnim, sound };
+    }
     if (def.efectos.especial && this.i18n.hasBubble(def.efectos.especial)) {
       return { anim: def.animacion ?? defaultAnim, sound, bubble: this.i18n.bubble(def.efectos.especial, { name }) };
     }
@@ -458,6 +511,7 @@ export class Game {
       dndUntil: this.settings.dndUntil,
       muted: this.settings.muted,
       volume: this.settings.volume,
+      music: this.music,
       ui: this.i18n.section('ui'),
     };
   }

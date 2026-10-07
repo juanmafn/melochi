@@ -2,12 +2,11 @@ import { join } from 'node:path';
 import { LANGS, type Lang, type Localized } from '../shared/types';
 import { readJson } from './jsonfile';
 
-interface LocaleData {
-  menu: Record<string, string>;
-  ui: Record<string, string>;
-  setup: Record<string, string>;
+type Section = 'menu' | 'ui' | 'setup' | 'music';
+
+type LocaleData = Record<Section, Record<string, string>> & {
   bubbles: Record<string, string[]>;
-}
+};
 
 type Vars = Record<string, string | number>;
 
@@ -34,11 +33,11 @@ export class I18n {
     return locale.toLowerCase().startsWith('es') ? 'es' : 'en';
   }
 
-  section(name: 'menu' | 'ui' | 'setup', lang: Lang = this.lang): Record<string, string> {
+  section(name: Section, lang: Lang = this.lang): Record<string, string> {
     return { ...this.data.es[name], ...this.data[lang][name] };
   }
 
-  t(section: 'menu' | 'ui' | 'setup', key: string, vars?: Vars): string {
+  t(section: Section, key: string, vars?: Vars): string {
     return fill(this.section(section)[key] ?? key, vars);
   }
 

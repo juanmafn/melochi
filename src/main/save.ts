@@ -34,6 +34,14 @@ export interface Settings {
   volume: number;
   muted: boolean;
   dndUntil: number;
+  spotify: SpotifySettings;
+}
+
+export interface SpotifySettings {
+  /** Client ID de la app creada en el panel de desarrolladores de Spotify. */
+  clientId?: string;
+  /** Playlists asignadas a cada mood desde la ventana de Música. */
+  playlists: Record<string, { uri: string; name: string }[]>;
 }
 
 export function loadSave(path: string): SaveData | null {
@@ -47,10 +55,18 @@ export function loadSave(path: string): SaveData | null {
 }
 
 export function loadSettings(path: string, defaultLang: Lang): Settings {
-  const defaults: Settings = { lang: defaultLang, skin: 'placeholder', volume: 0.6, muted: false, dndUntil: 0 };
+  const defaults: Settings = {
+    lang: defaultLang,
+    skin: 'placeholder',
+    volume: 0.6,
+    muted: false,
+    dndUntil: 0,
+    spotify: { playlists: {} },
+  };
   if (!existsSync(path)) return defaults;
   try {
-    return { ...defaults, ...readJson<Partial<Settings>>(path) };
+    const loaded = readJson<Partial<Settings>>(path);
+    return { ...defaults, ...loaded, spotify: { ...defaults.spotify, ...loaded.spotify } };
   } catch {
     return defaults;
   }

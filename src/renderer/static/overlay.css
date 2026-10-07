@@ -86,6 +86,43 @@ canvas {
   border-top-color: var(--panel-bg);
 }
 
+.bubble.interactive {
+  min-width: 210px;
+  text-align: center;
+}
+
+.bubble-choices {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bubble-choice {
+  flex: 1;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.choice-yes {
+  background: var(--accent);
+  color: white;
+}
+
+.choice-no {
+  background: var(--panel-border);
+  color: var(--panel-text);
+}
+
+.bubble-choice:hover {
+  filter: brightness(0.95);
+}
+
 /* ---------- Objetos en el suelo ---------- */
 
 .ground-item {
@@ -362,6 +399,29 @@ canvas {
 
 .mood-feliz {
   color: var(--accent);
+}
+
+.now-playing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+  max-width: 300px;
+}
+
+.now-playing.paused {
+  opacity: 0.6;
+}
+
+.np-track {
+  font-weight: 600;
+}
+
+.np-hers {
+  color: var(--accent);
+  font-size: 12px;
 }
 
 .dnd-badge {

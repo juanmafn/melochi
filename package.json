@@ -1,0 +1,34 @@
+{
+  "name": "melochi",
+  "version": "0.1.0",
+  "description": "Mascota de escritorio tipo Tamagotchi que controla tu Spotify según su estado de ánimo",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "start": "electron .",
+    "dev": "node scripts/build.mjs && electron .",
+    "typecheck": "tsc --noEmit",
+    "gen:placeholder": "node scripts/gen-placeholder.mjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "koffi": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pngjs": "^6.0.5",
+    "electron": "^44.6.0",
+    "esbuild": "^0.28.2",
+    "pixi.js": "^8.22.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "koffi@3.3.2": true,
+    "esbuild@0.28.2": true
+  }
+}

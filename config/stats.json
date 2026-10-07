@@ -1,0 +1,31 @@
+{
+  "bajadaPorMinuto": {
+    "hambre": 0.6,
+    "sed": 0.75,
+    "diversion": 0.5,
+    "carino": 0.4
+  },
+  "mosqueo": {
+    "umbralBajo": 30,
+    "subidaPorMinuto": 1.5,
+    "umbralCalma": 50,
+    "bajadaPorMinuto": 0.5
+  },
+  "afinidad": {
+    "subidaPorMinuto": 0.02,
+    "bajadaPorMinuto": 0.03,
+    "modificadorBajada": 0.3,
+    "porInteraccion": 0.1
+  },
+  "segundosParaCambiarMood": 30,
+  "interacciones": {
+    "pet": { "carino": 3, "mosqueo": -1 },
+    "tickle": { "diversion": 2 },
+    "poke": { "carino": 0.5 },
+    "throw": { "diversion": 2 },
+    "throwHard": { "diversion": 1, "mosqueo": 3 }
+  },
+  "rechazoCariciasCabreada": 0.5,
+  "noMolestarUsosLibres": 3,
+  "noMolestarMosqueo": 5
+}

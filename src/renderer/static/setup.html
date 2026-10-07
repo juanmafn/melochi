@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+    <title>Melochi</title>
+    <link rel="stylesheet" href="setup.css" />
+  </head>
+  <body>
+    <main>
+      <h1 id="title"></h1>
+      <form id="form">
+        <label>
+          <span id="langLabel"></span>
+          <select id="lang"></select>
+        </label>
+        <label>
+          <span id="nameLabel"></span>
+          <input id="name" maxlength="24" autocomplete="off" required />
+        </label>
+        <div class="spotify">
+          <span id="spotifyLabel"></span>
+          <small id="spotifySoon"></small>
+        </div>
+        <button id="start" type="submit"></button>
+      </form>
+    </main>
+    <script type="module" src="setup.js"></script>
+  </body>
+</html>

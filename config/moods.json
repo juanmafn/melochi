@@ -1,0 +1,46 @@
+{
+  "moods": [
+    {
+      "id": "neutral",
+      "nombre": { "es": "Tranquila", "en": "Chill" },
+      "prioridad": 0,
+      "musica": { "playlists": [], "modo": "ninguno" },
+      "tono_chat": "normal, amistosa",
+      "comportamiento": { "exploracion": 0.4, "habla_sola": 0.3, "travesuras": false, "velocidad": 1 }
+    },
+    {
+      "id": "feliz",
+      "nombre": { "es": "Feliz", "en": "Happy" },
+      "prioridad": 10,
+      "condiciones": {
+        "todas": [
+          { "stat": "diversion", ">=": 60 },
+          { "stat": "carino", ">=": 60 },
+          { "stat": "hambre", ">=": 40 },
+          { "stat": "sed", ">=": 40 },
+          { "stat": "mosqueo", "<": 40 }
+        ]
+      },
+      "animaciones": { "idle": "feliz_idle" },
+      "musica": { "playlists": [], "modo": "sugerir" },
+      "tono_chat": "alegre y juguetona, usa exclamaciones",
+      "comportamiento": { "exploracion": 0.7, "habla_sola": 0.5, "travesuras": false, "velocidad": 1.2 }
+    },
+    {
+      "id": "cabreada",
+      "nombre": { "es": "Cabreada", "en": "Grumpy" },
+      "prioridad": 100,
+      "condiciones": {
+        "alguna": [
+          { "stat": "mosqueo", ">=": 70 },
+          { "stat": "hambre", "<=": 10 },
+          { "stat": "sed", "<=": 10 }
+        ]
+      },
+      "animaciones": { "idle": "cabreada_idle", "walk": "cabreada_walk" },
+      "musica": { "playlists": [], "modo": "travesura" },
+      "tono_chat": "borde, sarcástica, rencorosa, respuestas cortas",
+      "comportamiento": { "exploracion": 0.9, "habla_sola": 0.8, "travesuras": true, "velocidad": 1.4 }
+    }
+  ]
+}

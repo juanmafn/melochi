@@ -1,0 +1,141 @@
+import type { OverlayApi } from '../../preload/overlay';
+import type { Pet } from './pet';
+
+const DRAG_THRESHOLD = 6;
+const TICKLE_CLICKS = 3;
+const TICKLE_WINDOW_MS = 1500;
+const POKE_DELAY_MS = 450;
+const STROKE_MIN_TRAVEL = 12;
+const STROKES_FOR_PET = 4;
+const STROKE_WINDOW_MS = 2000;
+const PET_COOLDOWN_MS = 1200;
+
+/**
+ * La ventana deja pasar el ratón a lo que haya debajo, salvo cuando el cursor está sobre la mascota
+ * o sobre un elemento con la clase "interactive". Aquí también se detectan caricias, cosquillas y arrastres.
+ */
+export class Input {
+  private ignoring = true;
+  private press: { x: number; y: number } | null = null;
+  dragging = false;
+  private clicks: number[] = [];
+  private pokeTimer: number | null = null;
+  private stroke = { lastX: 0, dir: 0, travel: 0, times: [] as number[], cooldownUntil: 0 };
+
+  constructor(
+    private pet: Pet,
+    private api: OverlayApi,
+  ) {}
+
+  install(): void {
+    // Sincroniza el estado con la ventana desde el principio.
+    this.api.setIgnoreMouse(true);
+    window.addEventListener('mousemove', (e) => this.onMouseMove(e));
+    window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+    window.addEventListener('pointermove', (e) => this.onPointerMove(e));
+    window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (this.pet.hitTest(e.clientX, e.clientY)) this.api.contextMenu();
+    });
+    // Si el ratón sale de la ventana (otro monitor), vuelve a dejar pasar los clics.
+    document.addEventListener('mouseleave', () => this.setIgnore(true));
+  }
+
+  private isInteractive(x: number, y: number): boolean {
+    const target = document.elementFromPoint(x, y);
+    if (target?.closest('.interactive')) return true;
+    return this.pet.hitTest(x, y);
+  }
+
+  private setIgnore(ignore: boolean): void {
+    if (this.press || this.dragging) return;
+    if (ignore === this.ignoring) return;
+    this.ignoring = ignore;
+    this.api.setIgnoreMouse(ignore);
+  }
+
+  /** Llega también cuando la ventana ignora el ratón (eventos reenviados). */
+  private onMouseMove(e: MouseEvent): void {
+    this.setIgnore(!this.isInteractive(e.clientX, e.clientY));
+    if (!this.press && !this.dragging && this.pet.hitTest(e.clientX, e.clientY)) {
+      this.pet.hold();
+      this.trackStroke(e.clientX);
+    }
+  }
+
+  /** Caricia: pasar el cursor de un lado a otro por encima de la mascota varias veces. */
+  private trackStroke(x: number): void {
+    const s = this.stroke;
+    const dx = x - s.lastX;
+    s.lastX = x;
+    if (dx === 0) return;
+    const dir = Math.sign(dx);
+    if (dir === s.dir) {
+      s.travel += Math.abs(dx);
+      return;
+    }
+    const now = performance.now();
+    if (s.travel >= STROKE_MIN_TRAVEL) s.times.push(now);
+    s.dir = dir;
+    s.travel = Math.abs(dx);
+    s.times = s.times.filter((t) => now - t < STROKE_WINDOW_MS);
+    if (s.times.length >= STROKES_FOR_PET && now >= s.cooldownUntil) {
+      s.times = [];
+      s.cooldownUntil = now + PET_COOLDOWN_MS;
+      this.api.interact('pet');
+    }
+  }
+
+  private onPointerDown(e: PointerEvent): void {
+    if (e.button !== 0 || !this.pet.hitTest(e.clientX, e.clientY)) return;
+    this.press = { x: e.clientX, y: e.clientY };
+    document.documentElement.setPointerCapture(e.pointerId);
+  }
+
+  private onPointerMove(e: PointerEvent): void {
+    if (!this.press || this.dragging) return;
+    if (Math.hypot(e.clientX - this.press.x, e.clientY - this.press.y) < DRAG_THRESHOLD) return;
+    this.dragging = true;
+    this.pet.startDrag();
+    // Distancia del cursor al punto de apoyo: main la mantiene mientras arrastras.
+    this.api.dragStart(this.press.x - this.pet.x, this.press.y - this.pet.y);
+  }
+
+  private onPointerUp(e: PointerEvent): void {
+    if (e.button !== 0) return;
+    const wasDragging = this.dragging;
+    const pressed = this.press;
+    this.press = null;
+    this.dragging = false;
+    if (wasDragging) this.api.dragEnd();
+    else if (pressed) this.onClick();
+    this.setIgnore(!this.isInteractive(e.clientX, e.clientY));
+  }
+
+  /** main terminó el arrastre por su cuenta (p. ej. soltaste sobre otro monitor). */
+  dragFinished(): void {
+    this.press = null;
+    this.dragging = false;
+  }
+
+  /** Un clic suelto = "toque"; varios clics rápidos = cosquillas. */
+  private onClick(): void {
+    const now = performance.now();
+    this.clicks = this.clicks.filter((t) => now - t < TICKLE_WINDOW_MS);
+    this.clicks.push(now);
+    if (this.pokeTimer !== null) clearTimeout(this.pokeTimer);
+    this.pokeTimer = null;
+
+    if (this.clicks.length >= TICKLE_CLICKS) {
+      this.clicks = [];
+      this.api.interact('tickle');
+      return;
+    }
+    this.pokeTimer = window.setTimeout(() => {
+      this.pokeTimer = null;
+      if (this.clicks.length === 1) this.api.interact('poke');
+      this.clicks = [];
+    }, POKE_DELAY_MS);
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "bonusPorMood": { "feliz": 0.1, "cabreada": 0 },
+  "bonusAfinidadMax": 0.1,
+  "rendimientoDecreciente": { "ventanaMinutos": 5, "repeticionesLibres": 6 },
+  "moodsReconciliacion": ["cabreada"],
+  "maxEnSuelo": 12,
+  "tablas": {
+    "pet": {
+      "probabilidad": 0.25,
+      "entradas": [
+        { "item": "galleta", "peso": 5 },
+        { "item": "manzana", "peso": 4 },
+        { "item": "onigiri", "peso": 2 },
+        { "item": "agua", "peso": 5 },
+        { "item": "zumo", "peso": 2 },
+        { "item": "tarta", "peso": 0.5 }
+      ]
+    },
+    "tickle": {
+      "probabilidad": 0.25,
+      "entradas": [
+        { "item": "agua", "peso": 4 },
+        { "item": "zumo", "peso": 4 },
+        { "item": "refresco", "peso": 1 },
+        { "item": "batido", "peso": 0.5 }
+      ]
+    },
+    "throw": {
+      "probabilidad": 0.3,
+      "entradas": [
+        { "item": "pelota", "peso": 3 },
+        { "item": "refresco", "peso": 2 },
+        { "item": "pizza", "peso": 1 },
+        { "item": "laser", "peso": 0.7 },
+        { "item": "peluche", "peso": 0.2 }
+      ]
+    },
+    "minijuegoGanado": {
+      "probabilidad": 1,
+      "entradas": [
+        { "item": "pizza", "peso": 3 },
+        { "item": "tarta", "peso": 3 },
+        { "item": "batido", "peso": 3 },
+        { "item": "laser", "peso": 2 },
+        { "item": "peluche", "peso": 1 },
+        { "item": "banquete", "peso": 0.5 },
+        { "item": "elixir", "peso": 0.5 },
+        { "item": "auriculares", "peso": 0.3 },
+        { "item": "vinilo", "peso": 0.5 },
+        { "item": "reloj_arena", "peso": 0.3 }
+      ]
+    },
+    "minijuegoPerdido": {
+      "probabilidad": 0.5,
+      "entradas": [
+        { "item": "galleta", "peso": 3 },
+        { "item": "agua", "peso": 3 },
+        { "item": "manzana", "peso": 2 }
+      ]
+    },
+    "juegoChat": {
+      "probabilidad": 0.4,
+      "entradas": [
+        { "item": "carta_disculpa", "peso": 1 },
+        { "item": "te_tila", "peso": 2 },
+        { "item": "onigiri", "peso": 2 }
+      ]
+    },
+    "sugerenciaAceptada": {
+      "probabilidad": 0.15,
+      "entradas": [
+        { "item": "vinilo", "peso": 1 },
+        { "item": "zumo", "peso": 3 }
+      ]
+    },
+    "reconciliacion": {
+      "probabilidad": 0.3,
+      "entradas": [
+        { "item": "chuche_paz", "peso": 2 },
+        { "item": "te_tila", "peso": 3 },
+        { "item": "galleta", "peso": 2 },
+        { "item": "agua", "peso": 2 }
+      ]
+    }
+  }
+}

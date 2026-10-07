@@ -1,0 +1,89 @@
+:root {
+  --bg: #fff7ef;
+  --card: #ffffff;
+  --text: #3b2f2a;
+  --muted: #8a7a72;
+  --accent: #ff8a65;
+  --accent-dark: #e8704b;
+  --border: #f0dfd3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  padding: 28px 32px;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 20px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+input,
+select {
+  font: inherit;
+  font-weight: 400;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.spotify {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.spotify small {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+button {
+  margin-top: 6px;
+  font: inherit;
+  font-weight: 700;
+  padding: 11px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-dark);
+}

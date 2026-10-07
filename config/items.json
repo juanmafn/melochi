@@ -1,0 +1,137 @@
+{
+  "maxHuecos": 20,
+  "maxPorHueco": 10,
+  "inventarioInicial": [
+    { "item": "galleta", "cantidad": 3 },
+    { "item": "agua", "cantidad": 3 },
+    { "item": "pelota", "cantidad": 1 }
+  ],
+  "items": [
+    {
+      "id": "galleta", "categoria": "comida", "rareza": "comun",
+      "nombre": { "es": "Galleta", "en": "Cookie" },
+      "descripcion": { "es": "Crujiente y sencilla.", "en": "Crunchy and simple." },
+      "efectos": { "stats": { "hambre": 15 } }
+    },
+    {
+      "id": "manzana", "categoria": "comida", "rareza": "comun",
+      "nombre": { "es": "Manzana", "en": "Apple" },
+      "descripcion": { "es": "Una al día...", "en": "One a day..." },
+      "efectos": { "stats": { "hambre": 20 } }
+    },
+    {
+      "id": "onigiri", "categoria": "comida", "rareza": "comun",
+      "nombre": { "es": "Onigiri", "en": "Onigiri" },
+      "descripcion": { "es": "Bola de arroz con alga.", "en": "Rice ball with seaweed." },
+      "efectos": { "stats": { "hambre": 30 } }
+    },
+    {
+      "id": "pizza", "categoria": "comida", "rareza": "rara",
+      "nombre": { "es": "Pizza", "en": "Pizza" },
+      "descripcion": { "es": "Llena y divierte.", "en": "Filling and fun." },
+      "efectos": { "stats": { "hambre": 45, "diversion": 10 } }
+    },
+    {
+      "id": "tarta", "categoria": "comida", "rareza": "rara",
+      "nombre": { "es": "Tarta", "en": "Cake" },
+      "descripcion": { "es": "Hecha con cariño.", "en": "Made with love." },
+      "efectos": { "stats": { "hambre": 40, "carino": 15 } }
+    },
+    {
+      "id": "ramen_picante", "categoria": "comida", "rareza": "rara",
+      "nombre": { "es": "Ramen picante", "en": "Spicy ramen" },
+      "descripcion": { "es": "Llena mucho... pero la pone gruñona.", "en": "Very filling... but makes her grumpy." },
+      "efectos": { "stats": { "hambre": 50, "mosqueo": 5 } }
+    },
+    {
+      "id": "banquete", "categoria": "comida", "rareza": "epica",
+      "nombre": { "es": "Banquete", "en": "Feast" },
+      "descripcion": { "es": "Un festín de verdad.", "en": "A real feast." },
+      "efectos": { "fijar": { "hambre": 100 }, "stats": { "carino": 20 } }
+    },
+    {
+      "id": "agua", "categoria": "bebida", "rareza": "comun",
+      "nombre": { "es": "Agua", "en": "Water" },
+      "descripcion": { "es": "Fresquita.", "en": "Nice and cool." },
+      "efectos": { "stats": { "sed": 25 } }
+    },
+    {
+      "id": "zumo", "categoria": "bebida", "rareza": "comun",
+      "nombre": { "es": "Zumo", "en": "Juice" },
+      "descripcion": { "es": "De naranja, recién exprimido.", "en": "Freshly squeezed orange." },
+      "efectos": { "stats": { "sed": 30, "diversion": 5 } }
+    },
+    {
+      "id": "batido", "categoria": "bebida", "rareza": "rara",
+      "nombre": { "es": "Batido", "en": "Milkshake" },
+      "descripcion": { "es": "De fresa, con pajita.", "en": "Strawberry, with a straw." },
+      "efectos": { "stats": { "sed": 40, "carino": 10 } }
+    },
+    {
+      "id": "refresco", "categoria": "bebida", "rareza": "rara",
+      "nombre": { "es": "Refresco burbujeante", "en": "Fizzy soda" },
+      "descripcion": { "es": "Eructito incluido.", "en": "Burp included." },
+      "efectos": { "stats": { "sed": 35, "diversion": 15 } }
+    },
+    {
+      "id": "te_tila", "categoria": "bebida", "rareza": "rara",
+      "nombre": { "es": "Té de tila", "en": "Linden tea" },
+      "descripcion": { "es": "Calma los nervios.", "en": "Calms the nerves." },
+      "efectos": { "stats": { "sed": 30, "mosqueo": -15 } }
+    },
+    {
+      "id": "elixir", "categoria": "bebida", "rareza": "epica",
+      "nombre": { "es": "Elixir arcoíris", "en": "Rainbow elixir" },
+      "descripcion": { "es": "Sabe a todos los colores.", "en": "Tastes like every color." },
+      "efectos": { "fijar": { "sed": 100 }, "stats": { "diversion": 20 } }
+    },
+    {
+      "id": "pelota", "categoria": "juguete", "rareza": "comun", "usos": 5, "animacion": "happy",
+      "nombre": { "es": "Pelota", "en": "Ball" },
+      "descripcion": { "es": "Para jugar a lanzarla. 5 usos.", "en": "For playing fetch. 5 uses." },
+      "efectos": { "stats": { "diversion": 10 } }
+    },
+    {
+      "id": "laser", "categoria": "juguete", "rareza": "rara", "usos": 10, "animacion": "happy",
+      "nombre": { "es": "Puntero láser", "en": "Laser pointer" },
+      "descripcion": { "es": "¡El puntito rojo! 10 usos.", "en": "The red dot! 10 uses." },
+      "efectos": { "stats": { "diversion": 20 } }
+    },
+    {
+      "id": "peluche", "categoria": "juguete", "rareza": "rara", "permanente": true, "cooldownMinutos": 60, "animacion": "petted",
+      "nombre": { "es": "Peluche", "en": "Plushie" },
+      "descripcion": { "es": "Lo abraza un rato. Una vez por hora.", "en": "She hugs it for a while. Once per hour." },
+      "efectos": { "stats": { "carino": 15 } }
+    },
+    {
+      "id": "auriculares", "categoria": "juguete", "rareza": "epica", "permanente": true, "cooldownMinutos": 30, "animacion": "happy",
+      "nombre": { "es": "Auriculares mini", "en": "Mini headphones" },
+      "descripcion": { "es": "Su diversión no baja durante 30 min.", "en": "Her fun doesn't drop for 30 min." },
+      "efectos": { "congelar": { "stats": ["diversion"], "minutos": 30 } }
+    },
+    {
+      "id": "chuche_paz", "categoria": "especial", "rareza": "rara", "animacion": "happy",
+      "nombre": { "es": "Chuche de la paz", "en": "Peace candy" },
+      "descripcion": { "es": "Baja mucho el mosqueo.", "en": "Greatly reduces grumpiness." },
+      "efectos": { "stats": { "mosqueo": -40 } }
+    },
+    {
+      "id": "carta_disculpa", "categoria": "especial", "rareza": "rara", "animacion": "petted",
+      "nombre": { "es": "Carta de disculpa", "en": "Apology letter" },
+      "descripcion": { "es": "La leerá con mucho drama.", "en": "She'll read it with lots of drama." },
+      "efectos": { "stats": { "mosqueo": -25, "carino": 10 }, "especial": "leerCarta" }
+    },
+    {
+      "id": "vinilo", "categoria": "especial", "rareza": "epica", "animacion": "happy",
+      "nombre": { "es": "Vinilo misterioso", "en": "Mystery vinyl" },
+      "descripcion": { "es": "Te regala una canción que le gusta.", "en": "She gifts you a song she likes." },
+      "efectos": { "stats": { "afinidad": 5 }, "especial": "regalarCancion" }
+    },
+    {
+      "id": "reloj_arena", "categoria": "especial", "rareza": "epica", "animacion": "happy",
+      "nombre": { "es": "Reloj de arena", "en": "Hourglass" },
+      "descripcion": { "es": "Congela sus necesidades 30 min.", "en": "Freezes her needs for 30 min." },
+      "efectos": { "congelar": { "stats": "todas", "minutos": 30 } }
+    }
+  ]
+}

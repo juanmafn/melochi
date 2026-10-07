@@ -1,0 +1,40 @@
+// Skin provisional generada por scripts/gen-placeholder.mjs. Cópiala como plantilla para tu propia skin.
+{
+  "nombre": "Gota provisional",
+  // Escala con la que se dibuja (1 = tamaño real de los PNG).
+  "escala": 1,
+  // Punto de apoyo de los pies, normalizado: [0.5, 1] = centro abajo.
+  "ancla": [0.5, 1],
+  // Cada animación puede ser:
+  //   { "frames": "carpeta/", "fps": 8, "loop": true }            → PNG numerados (000.png, 001.png...)
+  //   { "sheet": "x.json", "fps": 8 }                              → sprite sheet de TexturePacker o Aseprite
+  //   { "sheet": "x.json", "tag": "walk" }                         → una etiqueta (frameTags) de Aseprite
+  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted...
+  // Variantes por mood: "<mood>_<animación>" (feliz_idle, cabreada_walk...). Si no existe, se usa la genérica.
+  "animaciones": {
+    "idle": {"frames":"anims/idle/","fps":6,"loop":true},
+    "feliz_idle": {"frames":"anims/feliz_idle/","fps":8,"loop":true},
+    "drag": {"frames":"anims/drag/","fps":8,"loop":true},
+    "fall": {"frames":"anims/fall/","fps":6,"loop":true},
+    "eat": {"frames":"anims/eat/","fps":8,"loop":true},
+    "drink": {"frames":"anims/drink/","fps":8,"loop":true},
+    "happy": {"frames":"anims/happy/","fps":10,"loop":true},
+    "angry": {"frames":"anims/angry/","fps":12,"loop":true},
+    "talk": {"frames":"anims/talk/","fps":8,"loop":true},
+    "petted": {"frames":"anims/petted/","fps":8,"loop":true},
+    "walk": {"sheet":"anims/walks.json","tag":"walk","loop":true},
+    "cabreada_walk": {"sheet":"anims/walks.json","tag":"cabreada_walk","loop":true},
+    "cabreada_idle": {"sheet":"anims/cabreada_idle.json","fps":8,"loop":true}
+  },
+  // Sonidos por evento. Si hay varios, se elige uno al azar.
+  "sonidos": {
+    "saludo": ["sounds/saludo.wav"],
+    "risa": ["sounds/risa.wav"],
+    "grunido": ["sounds/grunido.wav"],
+    "comer": ["sounds/comer.wav"],
+    "beber": ["sounds/beber.wav"],
+    "recoger": ["sounds/recoger.wav"],
+    "pop": ["sounds/pop.wav"],
+    "petted": ["sounds/petted.wav"]
+  }
+}

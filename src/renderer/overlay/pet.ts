@@ -1,10 +1,10 @@
 import { Graphics, Sprite, type Container } from 'pixi.js';
 import { clamp, groundY, neighborDisplay } from '../../shared/displays';
-import type { ClimbMessage, DisplayInfo, GameView, HideEdge, OwnMessage, PerchInfo, PetGoal, PetPose, Rect } from '../../shared/types';
+import type { ClimbMessage, CloseUpMessage, DisplayInfo, GameView, HideEdge, OwnMessage, PerchInfo, PetGoal, PetPose, Rect } from '../../shared/types';
 import type { OverlayApi } from '../../preload/overlay';
 import type { LoadedAnim, LoadedSkin } from './skin';
 
-type Mode = 'idle' | 'walk' | 'fall' | 'action' | 'dragged' | 'hiding' | 'climb';
+type Mode = 'idle' | 'walk' | 'fall' | 'action' | 'dragged' | 'hiding' | 'climb' | 'closeup';
 
 const GRAVITY = 2200;
 const CLIMB_SPEED = 95;
@@ -12,6 +12,13 @@ const CLIMB_SPEED = 95;
 const MOUNT_MS = 380;
 /** Altura del saltito al ritmo (px, a escala 1). */
 const BEAT_HOP = 9;
+/** Acercarse a la pantalla: duraciones (ms) y tamaño final (alto del frame respecto al del monitor). */
+const CLOSEUP_GROW_MS = 1600;
+const CLOSEUP_SHRINK_MS = 1200;
+const CLOSEUP_HEIGHT = 0.85;
+/** Ritmo de los golpecitos: dos seguidos ("toc, toc") y una pausa. Enfadada, más y más rápido. */
+const TAP_PATTERN = [320, 1300];
+const ANGRY_TAP_PATTERN = [180, 180, 900];
 const WALK_SPEED = 70;
 const EDGE_MARGIN = 40;
 const REPORT_EVERY_MS = 1000;
@@ -26,6 +33,9 @@ const FALLBACK: Record<string, string> = {
   eat: 'happy',
   dance: 'happy',
   climb: 'walk',
+  knock_angry: 'knock',
+  knock: 'front',
+  front: 'walk',
   mischief: 'angry',
   drag: 'fall',
   fall: 'idle',
@@ -79,6 +89,25 @@ export class Pet {
    * y al final da un saltito para quedarse encima (perch).
    */
   private climb: { x: number; side: 1 | -1; perch: PerchInfo; phase: 'approach' | 'up' | 'mount'; t: number; fromX: number } | null = null;
+  /** Acercamiento a la pantalla (1 = tamaño normal). */
+  private zoom = 1;
+  /**
+   * Acercándose a la pantalla: crece hacia el centro (grow), toca el cristal (knock) y vuelve (shrink).
+   * `from` = dónde estaba; `to` = dónde quedan los pies en primer plano.
+   */
+  private closeup: {
+    kind: CloseUpMessage['kind'];
+    phase: 'grow' | 'knock' | 'shrink';
+    t: number;
+    endAt: number;
+    from: { x: number; y: number; facing: 1 | -1 };
+    to: { x: number; y: number };
+    maxZoom: number;
+    tap: number;
+    nextTapAt: number;
+  } | null = null;
+  /** Avisos para el resto de la ventana (sonido "toc", huella en el cristal, oscurecer el fondo). */
+  onCloseUp: ((e: { type: 'start' | 'end' } | { type: 'tap'; x: number; y: number; angry: boolean }) => void) | null = null;
   /** Saltito al ritmo de la música mientras baila (tiempo y duración en ms). */
   private hop: { t: number; ms: number } | null = null;
   private beats = 0;
@@ -110,8 +139,16 @@ export class Pet {
     return this.perch ? [this.perch.minX, this.perch.maxX] : [margin, this.width - margin];
   }
 
+  /** Escala con la que se dibuja ahora: la de la skin, la propia de la animación y el acercamiento a la pantalla. */
   private get scale(): number {
-    return this.skin?.manifest.escala ?? 1;
+    return (this.skin?.manifest.escala ?? 1) * (this.anim?.scale ?? 1) * this.zoom;
+  }
+
+  /** Tamaño "normal" de la mascota (escala de la skin y de su animación de reposo), sin acercamiento. */
+  private get baseHeight(): number {
+    const idle = this.skin?.anims.get(this.resolveAnim('idle'));
+    const f = idle?.frames[0];
+    return f ? f.height * (this.skin?.manifest.escala ?? 1) * idle.scale : 128;
   }
 
   private get frame() {
@@ -135,9 +172,11 @@ export class Pet {
   }
 
   private toGlobal(): PetPose {
+    // Acercándose a la pantalla, para main sigue donde estaba (luego vuelve ahí).
+    const at = this.closeup?.from ?? this;
     return {
-      x: this.x + this.display.bounds.x,
-      y: this.y + this.display.bounds.y,
+      x: at.x + this.display.bounds.x,
+      y: at.y + this.display.bounds.y,
       vx: this.vx,
       vy: this.vy,
       state: this.mode === 'walk' ? 'walk' : this.mode === 'fall' ? 'fall' : 'idle',
@@ -196,6 +235,7 @@ export class Pet {
     this.perch = msg.perch ? this.localPerch(msg.perch) : null;
     this.climb = null;
     this.hop = null;
+    this.resetCloseUp();
     this.setHide(msg.hide ?? null, msg.hideClip);
 
     if (msg.hide) {
@@ -231,6 +271,14 @@ export class Pet {
     }
   }
 
+  /** Quita el acercamiento de golpe (cambio de monitor, de dueña de la mascota...). */
+  private resetCloseUp(): void {
+    if (!this.closeup && this.zoom === 1) return;
+    this.closeup = null;
+    this.zoom = 1;
+    this.onCloseUp?.({ type: 'end' });
+  }
+
   private localPerch(p: PerchInfo): PerchInfo {
     const b = this.display.bounds;
     return { y: p.y - b.y, minX: p.minX - b.x, maxX: p.maxX - b.x };
@@ -241,6 +289,7 @@ export class Pet {
     this.owned = false;
     this.perch = null;
     this.climb = null;
+    this.resetCloseUp();
     this.setHide(null);
     if (poof) this.fx = { kind: 'out', t: 0 };
     else this.sprite.visible = false;
@@ -259,7 +308,8 @@ export class Pet {
   }
 
   react(anim: string, durationMs?: number): void {
-    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'hiding' || this.mode === 'climb') return;
+    const busy: Mode[] = ['dragged', 'fall', 'hiding', 'climb', 'closeup'];
+    if (!this.owned || busy.includes(this.mode)) return;
     this.play(anim, true);
     const a = this.anim;
     const total = a ? a.frames.reduce((s, f) => s + f.duration, 0) : 0;
@@ -268,7 +318,7 @@ export class Pet {
 
   /** Corre hasta x (local) mientras juega. No interrumpe si la están arrastrando o está cayendo. */
   runTo(x: number, speedMult = 2.2): void {
-    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'climb') return;
+    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'climb' || this.mode === 'closeup') return;
     // Un juguete o huir del cursor es más importante que trepar.
     this.cancelClimb(true);
     this.goal = null;
@@ -383,6 +433,106 @@ export class Pet {
     }
   }
 
+  /** Está acercándose a la pantalla (o volviendo): no se la puede arrastrar. */
+  get inCloseUp(): boolean {
+    return this.mode === 'closeup';
+  }
+
+  /** Main le pide que se acerque a la pantalla y toque el cristal. Si no puede ahora, se lo dice. */
+  startCloseUp(msg: CloseUpMessage): void {
+    if (!this.owned || this.playing || !['idle', 'walk', 'action'].includes(this.mode)) {
+      this.api.closeupAbort();
+      return;
+    }
+    const H = this.display.bounds.height;
+    const maxZoom = (CLOSEUP_HEIGHT * H) / this.baseHeight;
+    const center = this.width / 2;
+    this.closeup = {
+      kind: msg.kind,
+      phase: 'grow',
+      t: 0,
+      endAt: performance.now() + CLOSEUP_GROW_MS + msg.waitMs,
+      from: { x: this.x, y: this.y, facing: this.facing },
+      // Hacia el centro, con los pies algo por debajo del borde de la pantalla (está pegada al cristal).
+      to: { x: this.x * 0.35 + center * 0.65, y: H + CLOSEUP_HEIGHT * H * 0.08 },
+      maxZoom,
+      tap: 0,
+      nextTapAt: 0,
+    };
+    this.targetX = null;
+    this.hop = null;
+    this.setMode('closeup');
+    this.onCloseUp?.({ type: 'start' });
+  }
+
+  /** Main dice que ya está (le has hecho caso o se cansa de esperar): vuelve a su sitio. */
+  endCloseUp(): void {
+    const c = this.closeup;
+    if (!c || c.phase === 'shrink') return;
+    c.phase = 'shrink';
+    c.t = 0;
+    c.to = { x: this.x, y: this.y };
+    c.maxZoom = this.zoom;
+    this.play('walk');
+  }
+
+  private stepCloseUp(dtMs: number): void {
+    const c = this.closeup;
+    if (!c) {
+      this.idleFor(500);
+      return;
+    }
+    c.t += dtMs;
+    const ease = (k: number) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+    if (c.phase === 'grow') {
+      const k = Math.min(1, c.t / CLOSEUP_GROW_MS);
+      const e = ease(k);
+      this.zoom = 1 + (c.maxZoom - 1) * e;
+      this.x = c.from.x + (c.to.x - c.from.x) * e;
+      this.y = c.from.y + (c.to.y - c.from.y) * e;
+      this.facing = 1;
+      this.play('front');
+      if (k >= 1) {
+        c.phase = 'knock';
+        c.t = 0;
+        c.nextTapAt = 250;
+        this.play(c.kind === 'angry' ? 'knock_angry' : 'knock', true);
+      }
+      return;
+    }
+    if (c.phase === 'knock') {
+      if (c.t >= c.nextTapAt) {
+        const pattern = c.kind === 'angry' ? ANGRY_TAP_PATTERN : TAP_PATTERN;
+        c.nextTapAt += pattern[c.tap % pattern.length];
+        // Alterna las manos: izquierda, derecha...
+        const side = c.tap % 2 ? 1 : -1;
+        c.tap++;
+        const f = this.frame;
+        const w = (f?.width ?? 128) * this.scale;
+        const h = (f?.height ?? 128) * this.scale;
+        // Donde están las manitas en la animación (más o menos; con otras skins, cerca de las manos).
+        this.onCloseUp?.({ type: 'tap', x: this.x + side * w * 0.25, y: this.y - h * 0.22, angry: c.kind === 'angry' });
+      }
+      if (performance.now() >= c.endAt) this.endCloseUp();
+      return;
+    }
+    // Vuelve a donde estaba, haciéndose pequeña.
+    const k = Math.min(1, c.t / CLOSEUP_SHRINK_MS);
+    const e = ease(k);
+    this.zoom = c.maxZoom + (1 - c.maxZoom) * e;
+    this.x = c.to.x + (c.from.x - c.to.x) * e;
+    this.y = c.to.y + (c.from.y - c.to.y) * e;
+    this.facing = c.from.x >= c.to.x ? 1 : -1;
+    if (k < 1) return;
+    this.zoom = 1;
+    this.facing = c.from.facing;
+    this.closeup = null;
+    this.onCloseUp?.({ type: 'end' });
+    // Si mientras tanto ha perdido el sitio en el que estaba (estaba encima de una ventana), cae.
+    if (this.y < this.ground - 1) this.setMode('fall');
+    else this.idleFor(800);
+  }
+
   /** Golpe de ritmo de la música: si está bailando, da un saltito con él. */
   beat(periodMs: number): void {
     if (!this.owned || this.mode !== 'action' || this.animName !== this.resolveAnim('dance')) return;
@@ -467,6 +617,9 @@ export class Pet {
       case 'climb':
         this.stepClimb(dt);
         break;
+      case 'closeup':
+        this.stepCloseUp(Math.min(dtMs, 50));
+        break;
       case 'action':
         if (now >= this.modeUntil && (this.animDone || this.anim?.loop !== false)) this.idleFor(800 + Math.random() * 1500);
         break;
@@ -517,6 +670,8 @@ export class Pet {
         return 'hide_peek';
       case 'climb':
         return 'climb';
+      case 'closeup':
+        return 'front';
       default:
         return 'idle';
     }

@@ -12,6 +12,7 @@ import { Mischief } from './mischief';
 import { AudioListener } from './audio-listener';
 import { Climber } from './climber';
 import { Dancer } from './dance';
+import { Knock } from './knock';
 import { loadConfig, type GameConfig } from './config';
 import { Game } from './game';
 import { I18n } from './i18n';
@@ -282,9 +283,10 @@ async function start(): Promise<void> {
     overlays,
     music: { available: () => director.canMischief, run: (welcome) => director.mischief(welcome) },
     writeNote: () => brain.writeNote(),
+    pound: () => knock.start('angry'),
     userActive,
     // Ni en mitad de un juego ni mientras te está contestando en el chat.
-    busy: () => minigames.active !== null || !!brain.game || brain.busy,
+    busy: () => minigames.active !== null || !!brain.game || brain.busy || knock.active,
     ownWindows,
   });
 
@@ -300,15 +302,25 @@ async function start(): Promise<void> {
     overlays,
     audio,
     userActive,
-    busy: () => minigames.active !== null,
+    busy: () => minigames.active !== null || knock.active,
   });
-  const climber = new Climber({
+  const climber: Climber = new Climber({
     game,
     i18n,
     overlays,
     userActive,
-    busy: () => minigames.active !== null || dancer.dancing,
+    busy: () => minigames.active !== null || dancer.dancing || knock.active,
     ownWindows,
+  });
+
+  // ---------- Acercarse a la pantalla y tocar el cristal ----------
+
+  const knock: Knock = new Knock({
+    game,
+    i18n,
+    overlays,
+    idleSeconds,
+    busy: () => minigames.active !== null || !!brain.game || dancer.dancing || climber.active,
   });
 
   // ---------- Modos seguros (pantalla completa y llamadas) ----------
@@ -328,7 +340,7 @@ async function start(): Promise<void> {
   // Acceso para depurar con --inspect (no lo usa el juego).
   if (!app.isPackaged) {
     Object.assign(globalThis, {
-      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames, mischief, audio, dancer, climber },
+      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames, mischief, audio, dancer, climber, knock },
     });
   }
 
@@ -347,7 +359,10 @@ async function start(): Promise<void> {
     openChat: () => chatWindow.open(),
     play: {
       can: (kind) => minigames.canStart(kind),
-      start: (kind) => minigames.start(kind),
+      start: (kind) => {
+        game.noteAttention();
+        minigames.start(kind);
+      },
       canChat: () => !brain.busy && !brain.game,
       chat: (kind) => {
         chatWindow.open();
@@ -437,7 +452,7 @@ async function start(): Promise<void> {
   let suppressChatUntil = 0;
   ipcMain.on(toMain.interact, (_e, type: InteractionType) => {
     if (!INTERACTIONS.includes(type)) return;
-    if ((type === 'poke' && minigames.onPoke()) || (TOUCHES.includes(type) && mischief.onTouch())) {
+    if ((type === 'poke' && minigames.onPoke()) || (TOUCHES.includes(type) && (mischief.onTouch() || knock.onTouch()))) {
       suppressChatUntil = Date.now() + 1500;
       return;
     }
@@ -445,6 +460,7 @@ async function start(): Promise<void> {
   });
   ipcMain.on(toMain.dismissNote, (_e, id: string) => game.dismissNote(String(id)));
   ipcMain.on(toMain.fled, () => game.fled());
+  ipcMain.on(toMain.closeupAbort, () => knock.abort());
   ipcMain.on(toMain.useItem, (_e, index: number) => {
     if (Number.isInteger(index)) game.useItem(index);
   });
@@ -454,6 +470,7 @@ async function start(): Promise<void> {
   });
   ipcMain.on(toMain.openChat, () => {
     if (minigames.active === 'hide' || overlays.hiding || Date.now() < suppressChatUntil) return;
+    game.noteAttention();
     chatWindow.open();
   });
   ipcMain.on(toMain.toyDone, (_e, kind: ToyKind) => {
@@ -493,6 +510,7 @@ async function start(): Promise<void> {
   // Travesuras: también algo más rápido, para notar enseguida si mueves la ventana en la que está sentada.
   setInterval(() => mischief.tick(), 400);
   setInterval(() => climber.tick(), 400);
+  setInterval(() => knock.tick(), 400);
   setInterval(() => dancer.tick(), 1000);
 
   watchDir(paths.config, () => {

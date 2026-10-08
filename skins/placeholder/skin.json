@@ -9,7 +9,9 @@
   //   { "frames": "carpeta/", "fps": 8, "loop": true }            → PNG numerados (000.png, 001.png...)
   //   { "sheet": "x.json", "fps": 8 }                              → sprite sheet de TexturePacker o Aseprite
   //   { "sheet": "x.json", "tag": "walk" }                         → una etiqueta (frameTags) de Aseprite
-  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted, dance, climb (pared a la derecha)...
+  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted, dance, climb (pared a la derecha),
+  // front, knock, knock_angry (acercarse a la pantalla y tocar el cristal)...
+  // "escala" dentro de una animación: para dibujarla a más resolución (0.25 = frames 4 veces más grandes).
   // Variantes por mood: "<mood>_<animación>" (feliz_idle, cabreada_walk...). Si no existe, se usa la genérica.
   "animaciones": {
     "idle": {"frames":"anims/idle/","fps":6,"loop":true},
@@ -24,6 +26,9 @@
     "mischief": {"frames":"anims/mischief/","fps":10,"loop":true},
     "hide_peek": {"frames":"anims/hide_peek/","fps":3,"loop":true},
     "climb": {"frames":"anims/climb/","fps":8,"loop":true},
+    "front": {"frames":"anims/front/","fps":8,"loop":true,"escala":0.25},
+    "knock": {"frames":"anims/knock/","fps":6,"loop":true,"escala":0.25},
+    "knock_angry": {"frames":"anims/knock_angry/","fps":10,"loop":true,"escala":0.25},
     "talk": {"frames":"anims/talk/","fps":8,"loop":true},
     "petted": {"frames":"anims/petted/","fps":8,"loop":true},
     "walk": {"sheet":"anims/walks.json","tag":"walk","loop":true},
@@ -39,6 +44,8 @@
     "beber": ["sounds/beber.wav"],
     "recoger": ["sounds/recoger.wav"],
     "pop": ["sounds/pop.wav"],
-    "petted": ["sounds/petted.wav"]
+    "petted": ["sounds/petted.wav"],
+    "toc": ["sounds/toc.wav"],
+    "golpe": ["sounds/golpe.wav"]
   }
 }

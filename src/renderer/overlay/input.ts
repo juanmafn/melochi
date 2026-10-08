@@ -140,7 +140,8 @@ export class Input {
       return;
     }
     // Escondida no se puede arrastrar: un clic es "¡te encontré!".
-    if (!this.press || this.dragging || this.pet.isHiding) return;
+    // Tampoco pegada al cristal (acercándose a la pantalla).
+    if (!this.press || this.dragging || this.pet.isHiding || this.pet.inCloseUp) return;
     if (Math.hypot(e.clientX - this.press.x, e.clientY - this.press.y) < DRAG_THRESHOLD) return;
     this.dragging = true;
     this.pet.startDrag();

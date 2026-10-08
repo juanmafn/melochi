@@ -1,7 +1,7 @@
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import type { OverlayApi } from '../../preload/overlay';
-import type { ClimbMessage, GameView, HintMessage, OwnMessage, PanelId, Reaction, ToyKind } from '../../shared/types';
+import type { ClimbMessage, CloseUpMessage, GameView, HintMessage, OwnMessage, PanelId, Reaction, ToyKind } from '../../shared/types';
 import { Toys } from './toys';
 import { Input } from './input';
 import { Pet } from './pet';
@@ -133,6 +133,28 @@ async function boot(): Promise<void> {
   api.on('pet:unperch', (msg: { home: boolean }) => pet.unperch(msg.home));
 
   api.on('pet:climb', (msg: ClimbMessage) => pet.climbTo(msg));
+
+  // ---------- Acercarse a la pantalla y tocar el cristal ----------
+
+  // Fondo un poco oscurecido (da profundidad) y huellas en el "cristal" donde toca.
+  const veil = document.createElement('div');
+  veil.className = 'closeup-veil';
+  // Detrás de la mascota (antes del lienzo de Pixi); las huellas sí van delante, en el cristal.
+  document.body.prepend(veil);
+  pet.onCloseUp = (e) => {
+    if (e.type !== 'tap') veil.classList.toggle('visible', e.type === 'start');
+    else {
+      sound.play(e.angry ? 'golpe' : 'toc');
+      const mark = document.createElement('div');
+      mark.className = `glass-mark${e.angry ? ' angry' : ''}`;
+      mark.style.left = `${e.x}px`;
+      mark.style.top = `${e.y}px`;
+      uiRoot.appendChild(mark);
+      setTimeout(() => mark.remove(), 4000);
+    }
+  };
+  api.on('pet:closeup', (msg: CloseUpMessage) => pet.startCloseUp(msg));
+  api.on('pet:closeup-end', () => pet.endCloseUp());
 
   api.on('music:beat', (msg: { periodMs: number }) => pet.beat(msg.periodMs));
 

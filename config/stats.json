@@ -35,8 +35,17 @@
     "arribaSegundos": [20, 60],
     "distanciaMax": 700
   },
+  "tocarPantalla": {
+    "cadaMinutos": 60,
+    "inactivoMinutos": [3, 10],
+    "ignoradaMinutos": 15,
+    "carinoBajo": 30,
+    "esperaSegundos": 8,
+    "responder": { "carino": 8, "afinidad": 0.3 },
+    "ignorar": { "mosqueo": 2 }
+  },
   "travesuras": {
-    "pesos": { "musica": 3, "esconderse": 2, "sentarse": 2, "notita": 2 },
+    "pesos": { "musica": 3, "esconderse": 2, "sentarse": 2, "notita": 2, "golpear": 2 },
     "huirDelCursor": 0.6,
     "escondidaSegundos": 180,
     "sentadaSegundos": 45,

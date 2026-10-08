@@ -23,6 +23,7 @@ const api = {
   dismissNote: (id: string) => ipcRenderer.send(toMain.dismissNote, id),
   fled: () => ipcRenderer.send(toMain.fled),
   climbAbort: () => ipcRenderer.send(toMain.climbAbort),
+  closeupAbort: () => ipcRenderer.send(toMain.closeupAbort),
   on: (channel: (typeof toOverlay)[keyof typeof toOverlay], listener: Listener) => {
     ipcRenderer.on(channel, (_e, payload) => listener(payload));
   },

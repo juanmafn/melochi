@@ -275,8 +275,16 @@ Todos se lanzan desde el menú de clic derecho → **Jugar**. No están disponib
 - Se puede arrastrar y lanzar con el ratón (tiene física sencilla: cae, rebota).
 - Botón/menú **"¡A casa!"** para mandarla de vuelta.
 
+### 7.1b Acercarse a la pantalla ("¿estás ahí?")
+Se gira de frente, avanza hacia el centro de la pantalla haciéndose grande (unas 5-6 veces, 1,6 s), con el fondo un poco oscurecido por los bordes, y **toca el cristal** con las manitas ("toc, toc"), dejando marcas de vaho que se desvanecen. Pregunta en un bocadillo y espera unos 8 s; luego vuelve a su sitio haciéndose pequeña. Mientras está en grande solo su cuerpo recoge los clics (el resto de la pantalla sigue funcionando) y no se la puede arrastrar. Nunca en los modos seguros. Configuración en `config/stats.json` → `tocarPantalla`.
+- **"¿Estás ahí?":** si llevas 3-10 minutos sin tocar el ratón ni el teclado (una vez por rato). Si lo mueves o le haces clic, "¡Ah, estás ahí!" y le sube el Cariño. Si no, vuelve sin decir nada (no había nadie).
+- **Se siente ignorada:** si estás usando el PC, tiene el Cariño bajo (< 30) y no le haces caso desde hace 15 minutos (tocarla, darle algo, hablarle o jugar). Si le haces clic, se alegra y sube el Cariño; si no, se queda triste y le sube un poco el Mosqueo.
+- Como mucho una vez cada 60 minutos entre las dos.
+- **Cabreada (travesura):** golpea el cristal ("¡¡EH!! ¡¡QUE ESTOY AQUÍ!!") con una animación roja y ondas de golpe. Entra en el sorteo de travesuras (`travesuras.pesos.golpear`). Si le haces clic, se le pasa un poquito el enfado.
+- Animaciones: `front` (andando de frente), `knock` (tocando el cristal) y `knock_angry`. Como se ven en grande, conviene dibujarlas a más resolución (la skin provisional las tiene a 512 px con `"escala": 0.25`).
+
 ### 7.2 Travesuras de escritorio (cabreada)
-Las travesuras de música y las de escritorio salen del mismo sorteo, con pesos en `config/stats.json` → `travesuras.pesos` (`musica`, `esconderse`, `sentarse`, `notita`). Si la elegida no se puede hacer (no hay Spotify, tu ventana está maximizada, ya hay 3 notitas...), prueba con otra. Cuentan juntas para el máximo de 1 cada 10 minutos, y la de bienvenida también puede ser de escritorio.
+Las travesuras de música y las de escritorio salen del mismo sorteo, con pesos en `config/stats.json` → `travesuras.pesos` (`musica`, `esconderse`, `sentarse`, `notita`, `golpear`: golpear el cristal, ver 7.1b). Si la elegida no se puede hacer (no hay Spotify, tu ventana está maximizada, ya hay 3 notitas...), prueba con otra. Cuentan juntas para el máximo de 1 cada 10 minutos, y la de bienvenida también puede ser de escritorio.
 - **Esconderse:** avisa (*"¡A que no me encuentras!"*) y desaparece. Asoma media cara por un borde de la pantalla, por detrás de la barra de tareas o **por detrás de tu ventana activa** (por un lado o por encima, recortada para que parezca que está detrás). Si haces clic en ella o la acaricias, la has encontrado y se le pasa un poco el enfado (`encontrarlaMosqueo`). Si no, sale sola a los 3 minutos (`escondidaSegundos`) quejándose de que ni la has buscado. Si mueves o cierras la ventana tras la que estaba, sale protestando. Escondida no se puede arrastrar ni empezar un minijuego.
 - **Sentarse encima de tu ventana:** aparece sobre la barra de título de la ventana que estás usando y pasea por encima. Si la mueves, la minimizas o cambias a otra ventana, se cae (y se queja). A los 45 s (`sentadaSegundos`) se baja sola. "¡A casa!" la baja de un salto y la manda a casa. No lo hace con ventanas maximizadas o demasiado arriba (no cabría).
 - **Notitas pasivo-agresivas:** un post-it amarillo en el monitor que estás mirando, con un texto que escribe la IA según su estado (o una frase fija si no hay IA), firmado con su nombre. Se quita con un clic (a veces protesta). Máximo 3 a la vez (`maxNotitas`). Se guardan en la partida, así que siguen ahí si cierras el programa.
@@ -373,7 +381,7 @@ Se aceptan **ambos formatos**: carpeta de PNGs por animación o sprite sheet + J
 **Resolución de animaciones**: se busca primero `<mood>_<acción>` y, si no existe, `<acción>`. Así puedes empezar solo con las básicas e ir añadiendo variantes por mood.
 
 **Animaciones mínimas (MVP):** `idle`, `walk`, `drag` (cogida), `fall`, `eat`, `drink`, `happy` (reacción), `angry` (reacción), `talk`.
-**Opcionales:** `dance`, `sleep`, `hide_peek`, `climb` (trepando, con la pared a su derecha; si falta, usa `walk`), `petted`, `mischief`, `cheat` (trampa en piedra-papel-tijera), y variantes por mood.
+**Opcionales:** `dance`, `sleep`, `hide_peek`, `climb` (trepando, con la pared a su derecha; si falta, usa `walk`), `front`, `knock`, `knock_angry` (acercarse a la pantalla; conviene dibujarlas grandes y usar `"escala"` en la animación), `petted`, `mischief`, `cheat` (trampa en piedra-papel-tijera), y variantes por mood.
 
 ### 10.1 Skin provisional (`placeholder`)
 Mientras el usuario dibuja la suya, el juego incluye una **skin provisional generada por script**. Es una "gota" de colores con ojos, y su color y expresión cambian según la animación. Usa **exactamente el mismo formato** que una skin de usuario, con frames PNG y una sprite sheet, así que sirve para probar el formato y como plantilla para copiar. Los objetos también tienen iconos provisionales sencillos.

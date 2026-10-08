@@ -18,18 +18,20 @@ for (const p of ['anims', 'items', 'sounds', 'skin.json', 'icon.png']) rmSync(jo
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 class Img {
-  constructor(w, h) {
+  /** `k`: resolución (2 = el doble de píxeles por unidad); las formas se siguen dando en unidades de 128. */
+  constructor(w, h, k = 1) {
     this.w = w;
     this.h = h;
+    this.k = k;
     this.d = new Float32Array(w * h * 4); // RGBA premultiplicado, 0..1
   }
 
   /** Pinta la forma `sdf` (negativa dentro) con el color [r, g, b] y opacidad `a`. */
   fill(sdf, [r, g, b], a = 1) {
-    const { w, h, d } = this;
+    const { w, h, d, k: res } = this;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        const cov = clamp(0.5 - sdf(x + 0.5, y + 0.5), 0, 1) * a;
+        const cov = clamp(0.5 - sdf((x + 0.5) / res, (y + 0.5) / res) * res, 0, 1) * a;
         if (cov <= 0) continue;
         const i = (y * w + x) * 4;
         const k = 1 - cov;
@@ -168,8 +170,8 @@ function puff(img, x, y, s, a) {
  *  color, dx, dy (desplazamiento), sx, sy (estirar), eyes, mouth, mouthK (apertura), look (-1..1),
  *  feet: [[dx, dy], [dx, dy]], antenna (ángulo en radianes), cheeks, extras: fn(img, geo)
  */
-function drawPet(o) {
-  const img = new Img(S, S);
+function drawPet(o, res = 1) {
+  const img = new Img(S * res, S * res, res);
   const col = o.color ?? C.mint;
   const dark = shade(col, 0.55);
   const rx = 40 * (o.sx ?? 1);
@@ -272,6 +274,15 @@ function steam(t) {
     const rise = (t % 1) * 10;
     puff(img, g.cx - g.rx - 2, g.cy - g.ry + 6 - rise, 5, 1 - (t % 1) * 0.6);
     puff(img, g.cx + g.rx + 2, g.cy - g.ry + 6 - rise, 5, 1 - (t % 1) * 0.6);
+  };
+}
+
+/** Manitas apoyadas en el cristal (por delante del cuerpo). `lift`: cuánto se levanta cada una. */
+function hands(col, [liftL, liftR]) {
+  return (img, g) => {
+    for (const [s, lift] of [[-1, liftL], [1, liftR]]) {
+      img.outlined(ellipse(g.cx + s * 32, g.cy + 20 - lift, 9, 8), shade(col, 1.1), 2, shade(col, 0.55));
+    }
   };
 }
 
@@ -482,6 +493,54 @@ const ANIMS = {
       feet: i % 2 ? [[60, -44], [30, -8]] : [[60, -14], [30, -38]],
     }),
   },
+  // Acercarse a la pantalla: se ven en grande, así que se dibujan a 4x (ver HIRES).
+  front: {
+    n: 6,
+    fps: 8,
+    loop: true,
+    f: (i) => ({
+      dy: -Math.abs(sin(i, 6, 3)),
+      look: 0,
+      cheeks: true,
+      antenna: sin(i, 6, 0.15),
+      feet: [[0, -Math.max(0, sin(i, 6, 6))], [0, -Math.max(0, -sin(i, 6, 6))]],
+    }),
+  },
+  knock: {
+    n: 4,
+    fps: 6,
+    loop: true,
+    f: (i) => ({
+      sx: 1.08,
+      sy: 0.96,
+      look: 0,
+      eyes: i === 3 ? 'blink' : 'open',
+      mouth: 'o',
+      cheeks: true,
+      antenna: sin(i, 4, 0.1),
+      extras: hands(C.mint, [i % 2 ? 6 : 0, i % 2 ? 0 : 6]),
+    }),
+  },
+  knock_angry: {
+    n: 4,
+    fps: 10,
+    loop: true,
+    f: (i) => ({
+      color: C.red,
+      sx: 1.08,
+      sy: 0.96,
+      dx: [-1, 1, -1, 1][i],
+      look: 0,
+      eyes: 'angry',
+      mouth: 'open',
+      mouthK: [1, 0.6, 1, 0.6][i],
+      antenna: [-0.2, 0.2, -0.2, 0.2][i],
+      extras: (img, g) => {
+        steam(i / 4)(img, g);
+        hands(C.red, [i % 2 ? 8 : 0, i % 2 ? 0 : 8])(img, g);
+      },
+    }),
+  },
   talk: { n: 4, fps: 8, f: (i) => ({ mouth: 'open', mouthK: [0.9, 0.3, 0.7, 0.2][i], antenna: sin(i, 4, 0.1), sy: 1 + sin(i, 4, 0.015) }) },
   petted: {
     n: 6,
@@ -511,15 +570,18 @@ function write(path, data) {
   writeFileSync(path, data);
 }
 
+// Las de acercarse a la pantalla se ven 4-5 veces más grandes: se dibujan a 4x y se marcan con "escala": 0.25.
+const HIRES = { front: 4, knock: 4, knock_angry: 4 };
+
 const rendered = {};
-for (const [name, a] of Object.entries(ANIMS)) rendered[name] = Array.from({ length: a.n }, (_, i) => drawPet(a.f(i)));
+for (const [name, a] of Object.entries(ANIMS)) rendered[name] = Array.from({ length: a.n }, (_, i) => drawPet(a.f(i), HIRES[name] ?? 1));
 
 const skinAnims = {};
 for (const [name, a] of Object.entries(ANIMS)) {
   const loop = a.loop ?? true;
   if (AS_SHEET_ASEPRITE.includes(name) || AS_SHEET_TEXTUREPACKER.includes(name)) continue;
   rendered[name].forEach((img, i) => write(join(out, 'anims', name, `${String(i).padStart(3, '0')}.png`), img.png()));
-  skinAnims[name] = { frames: `anims/${name}/`, fps: a.fps, loop };
+  skinAnims[name] = { frames: `anims/${name}/`, fps: a.fps, loop, ...(HIRES[name] ? { escala: 1 / HIRES[name] } : {}) };
 }
 
 // Sprite sheet estilo Aseprite (frames en array, con duración y etiquetas)
@@ -787,6 +849,9 @@ const SOUNDS = {
   recoger: mix(tone(0.32, 1320, 1320, { decay: 7, vol: 0.35 }), tone(0.32, 1980, 1980, { decay: 9, vol: 0.15 })),
   pop: tone(0.07, 900, 280, { vol: 0.45 }),
   petted: tone(0.5, 85, 80, { wave: 'square', vol: 0.18, vibrato: 12 }).map((v, i) => v * (0.6 + 0.4 * Math.sin(i / RATE * 2 * Math.PI * 22))),
+  // Golpecito en el cristal y golpe enfadado.
+  toc: mix(tone(0.07, 1900, 1500, { decay: 45, vol: 0.4 }), tone(0.07, 3100, 2600, { decay: 60, vol: 0.18 })),
+  golpe: mix(tone(0.16, 190, 80, { decay: 16, vol: 0.6 }), tone(0.1, 1300, 700, { decay: 40, vol: 0.2 })),
 };
 
 for (const [name, samples] of Object.entries(SOUNDS)) write(join(out, 'sounds', `${name}.wav`), wav(Array.from(samples)));
@@ -815,7 +880,9 @@ write(
   //   { "frames": "carpeta/", "fps": 8, "loop": true }            → PNG numerados (000.png, 001.png...)
   //   { "sheet": "x.json", "fps": 8 }                              → sprite sheet de TexturePacker o Aseprite
   //   { "sheet": "x.json", "tag": "walk" }                         → una etiqueta (frameTags) de Aseprite
-  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted, dance, climb (pared a la derecha)...
+  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted, dance, climb (pared a la derecha),
+  // front, knock, knock_angry (acercarse a la pantalla y tocar el cristal)...
+  // "escala" dentro de una animación: para dibujarla a más resolución (0.25 = frames 4 veces más grandes).
   // Variantes por mood: "<mood>_<animación>" (feliz_idle, cabreada_walk...). Si no existe, se usa la genérica.
   "animaciones": {
 ${animLines}

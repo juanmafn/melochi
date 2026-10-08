@@ -7,6 +7,7 @@
 //   node tools/mischief.mjs angry|calm      la pone cabreada (y con huida del cursor segura) o la calma
 //   node tools/mischief.mjs climb [s]       trepar a una ventana cercana y seguirla (usa tools/window-test)
 //   node tools/mischief.mjs dance [s]       pedirle que baile y contar los saltitos al ritmo (tiene que sonar algo)
+//   node tools/mischief.mjs knock idle|ignored|angry [responder] [captura.png]   acercarse a la pantalla y tocar el cristal
 async function session(port, match) {
   const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
   const t = match ? targets.find((x) => x.type === 'page' && x.url.includes(match)) : targets[0];
@@ -141,6 +142,36 @@ if (kind === 'angry' || kind === 'calm') {
   const avg = gaps.length ? gaps.reduce((s, v) => s + v, 0) / gaps.length : 0;
   console.log(`  separación entre saltitos (ms): ${gaps.map(Math.round).join(' ')}`);
   console.log(`saltitos: ${hops.length} · cada ${Math.round(avg)} ms (${avg ? Math.round(60000 / avg) : 0} BPM)`, '· animación:', await ov.ev(`__melochi.pet.animName`), '· oye:', await main.ev(`JSON.stringify(__melochi.audio.status)`));
+} else if (kind === 'knock') {
+  // Acercarse a la pantalla: node tools/mischief.mjs knock idle|ignored|angry [responder] [captura.png]
+  const [reason = 'idle', answer, shot] = process.argv.slice(3);
+  console.log('empieza:', await main.ev(`__melochi.knock.start('${reason}')`));
+  let last = '';
+  let shotDone = false;
+  const t0 = Date.now();
+  let answered = false;
+  while (Date.now() - t0 < 20000) {
+    const s = JSON.parse(await ov.ev(`JSON.stringify({ modo: __melochi.pet.mode, fase: __melochi.pet.closeup?.phase ?? null, zoom: Math.round(__melochi.pet.zoom * 10) / 10, x: Math.round(__melochi.pet.x), y: Math.round(__melochi.pet.y), anim: __melochi.pet.animName, huellas: document.querySelectorAll('.glass-mark').length, velo: document.querySelector('.closeup-veil.visible') !== null })`));
+    const key = `${s.modo} ${s.fase} ${s.anim}`;
+    if (key !== last) console.log(`  ${((Date.now() - t0) / 1000).toFixed(1)} s`, JSON.stringify(s));
+    last = key;
+    const b = await bubble();
+    if (b && b !== lastBubble) console.log(`  💬 ${b}`);
+    lastBubble = b ?? lastBubble;
+    if (s.fase === 'knock' && shot && !shotDone && s.huellas >= 2) {
+      shotDone = true;
+      await ov.send('Page.captureScreenshot', { format: 'png' }).then((r) => import('node:fs').then((fs) => fs.writeFileSync(shot, Buffer.from(r.result.data, 'base64'))));
+      console.log('  📷', shot, `(huellas: ${s.huellas})`);
+    }
+    if (answer === 'responder' && s.fase === 'knock' && !answered && Date.now() - t0 > 4000) {
+      answered = true;
+      console.log('  👆 clic en ella:', await main.ev(`__melochi.knock.onTouch()`));
+    }
+    if (s.modo !== 'closeup' && Date.now() - t0 > 3000 && !(await main.ev(`__melochi.knock.active`))) break;
+    await sleep(250);
+  }
+  await watch(2500);
+  console.log('  stats:', await main.ev(`JSON.stringify({ carino: Math.round(__melochi.game.save.stats.carino), mosqueo: Math.round(__melochi.game.save.stats.mosqueo) })`));
 } else if (kind === 'run') {
   console.log(
     await main.ev(`(() => {

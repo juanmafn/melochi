@@ -15,6 +15,8 @@ interface Deps {
   music: { available(): boolean; run(welcome: boolean): Promise<boolean> };
   /** Texto de un post-it escrito por la IA (null si no puede). */
   writeNote(): Promise<string | null>;
+  /** Acercarse a la pantalla y golpear el cristal. Devuelve false si ahora no puede. */
+  pound(): boolean;
   /** ¿Estás delante del ordenador? */
   userActive(): boolean;
   /** Algo que no se debe interrumpir (un minijuego, el chat abierto). */
@@ -124,6 +126,7 @@ export class Mischief {
       ['esconderse', petFree ? w.esconderse : 0],
       ['sentarse', petFree ? w.sentarse : 0],
       ['notita', this.d.game.notes.length < this.cfg.maxNotitas ? w.notita : 0],
+      ['golpear', petFree ? (w.golpear ?? 0) : 0],
     ];
     const out: DesktopMischief[] = [];
     let left = options.filter(([, p]) => p > 0);
@@ -146,6 +149,8 @@ export class Mischief {
         return this.perch();
       case 'notita':
         return this.note();
+      case 'golpear':
+        return this.d.pound();
     }
   }
 

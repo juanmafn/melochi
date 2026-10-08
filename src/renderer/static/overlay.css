@@ -208,6 +208,66 @@ canvas {
   font-weight: 700;
 }
 
+/* ---------- Acercarse a la pantalla ---------- */
+
+/* Oscurece un poco los bordes de la pantalla mientras está en primer plano (no bloquea el ratón). */
+.closeup-veil {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 70%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.28) 100%);
+  opacity: 0;
+  transition: opacity 1.2s;
+}
+
+.closeup-veil.visible {
+  opacity: 1;
+}
+
+/* Marca de vaho en el cristal donde toca, que se desvanece. */
+.glass-mark {
+  position: absolute;
+  width: 90px;
+  height: 70px;
+  margin: -35px 0 0 -45px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.55) 0%, rgba(230, 240, 255, 0.3) 45%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(2px);
+  animation: glass-fog 4s ease-out forwards;
+}
+
+/* Enfadada: un golpe con "ondas" en el cristal. */
+.glass-mark.angry {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.7) 36%, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.45) 60%, rgba(255, 255, 255, 0) 66%);
+  animation: glass-hit 0.9s ease-out forwards;
+}
+
+@keyframes glass-fog {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes glass-hit {
+  from {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
 /* ---------- Post-its (travesura) ---------- */
 
 .sticky-note {

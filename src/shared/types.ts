@@ -179,6 +179,21 @@ export interface StatsConfig {
     /** Distancia máxima (px) a la que busca una ventana. */
     distanciaMax: number;
   };
+  /** Acercarse a la pantalla y tocar el cristal ("¿estás ahí?"). */
+  tocarPantalla: {
+    /** Tiempo mínimo entre dos veces (la de travesura va aparte, con las travesuras). */
+    cadaMinutos: number;
+    /** Si llevas entre estos minutos sin tocar el ratón ni el teclado, mira si sigues ahí. */
+    inactivoMinutos: [number, number];
+    /** Si estás usando el PC pero no le haces caso en estos minutos y tiene el cariño bajo, te llama. */
+    ignoradaMinutos: number;
+    carinoBajo: number;
+    /** Segundos que espera tocando el cristal a que le hagas caso. */
+    esperaSegundos: number;
+    /** Si le haces caso (y si no, cuando te estaba llamando). */
+    responder: StatDelta;
+    ignorar: StatDelta;
+  };
   /** Travesuras (cuando está cabreada). Las musicales necesitan Spotify. */
   travesuras: {
     /** Probabilidad relativa de cada tipo. */
@@ -424,7 +439,17 @@ export interface StickyNote {
   rot: number;
 }
 
-export type DesktopMischief = 'musica' | 'esconderse' | 'sentarse' | 'notita';
+export type DesktopMischief = 'musica' | 'esconderse' | 'sentarse' | 'notita' | 'golpear';
+
+/**
+ * Se acerca a la pantalla (se hace grande) y toca el cristal. `knock` = "¿estás ahí?" (suave),
+ * `angry` = golpea el cristal (travesura).
+ */
+export interface CloseUpMessage {
+  kind: 'knock' | 'angry';
+  /** Tiempo máximo tocando el cristal antes de volver (si main no la avisa antes). */
+  waitMs: number;
+}
 
 export type HideEdge = 'left' | 'right' | 'bottom';
 
@@ -541,6 +566,11 @@ export interface SkinAnimation {
   fps: number;
   loop: boolean;
   frames: SkinFrame[];
+  /**
+   * Escala propia de la animación (se multiplica por la de la skin). Sirve para dibujar a más resolución
+   * las que se ven en grande (acercarse a la pantalla): p. ej. frames 4 veces más grandes con 0.25.
+   */
+  escala: number;
 }
 
 export interface SkinManifest {

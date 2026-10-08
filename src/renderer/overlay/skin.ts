@@ -13,6 +13,8 @@ export interface LoadedFrame {
 export interface LoadedAnim {
   frames: LoadedFrame[];
   loop: boolean;
+  /** Escala propia de la animación (frames dibujados a más resolución). */
+  scale: number;
 }
 
 export interface LoadedSkin {
@@ -83,7 +85,7 @@ export async function loadSkin(manifest: SkinManifest): Promise<LoadedSkin> {
     Object.entries(manifest.animaciones).map(async ([name, anim]) => {
       try {
         const frames = await Promise.all(anim.frames.map(async (f) => buildFrame(await getImage(f.image), f, anim.fps)));
-        anims.set(name, { frames, loop: anim.loop });
+        anims.set(name, { frames, loop: anim.loop, scale: anim.escala ?? 1 });
       } catch (err) {
         console.warn(`[skin] Animación "${name}":`, err);
       }

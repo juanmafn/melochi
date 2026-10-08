@@ -75,6 +75,8 @@ export class Game {
   private welcome: 'first' | 'back' | 'angry' | null;
   private welcomeAt = Date.now() + 4000;
   private lastMischiefAt = 0;
+  /** Última vez que le has hecho caso (tocarla, darle algo, hablarle, jugar). */
+  lastAttentionAt = Date.now();
   private music: MusicView = { connected: false, track: null, isPlaying: false, hers: false, opinion: null };
 
   constructor(
@@ -328,9 +330,15 @@ export class Game {
 
   // ---------- Interacciones ----------
 
+  /** Le has hecho caso (para saber si se siente ignorada). */
+  noteAttention(): void {
+    this.lastAttentionAt = Date.now();
+  }
+
   interact(type: InteractionType): void {
     const now = Date.now();
     this.activity.push({ type, at: now });
+    this.noteAttention();
     const sc = this.cfg.stats;
 
     if (type === 'pet' && this.isGrumpy && Math.random() < sc.rechazoCariciasCabreada) {
@@ -441,6 +449,7 @@ export class Game {
     const def = slot && this.cfg.itemMap.get(slot.item);
     if (!slot || !def) return;
     const now = Date.now();
+    this.noteAttention();
 
     if (def.permanente && (this.save.cooldowns[def.id] ?? 0) > now) {
       this.react({ anim: 'talk', bubble: this.i18n.bubble('cooldown') }, true);

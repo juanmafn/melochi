@@ -19,6 +19,7 @@ export const toMain = {
   dismissNote: 'note:dismiss',
   fled: 'pet:fled',
   climbAbort: 'pet:climb-abort',
+  closeupAbort: 'pet:closeup-abort',
 } as const;
 
 export const chatChannels = {
@@ -46,6 +47,8 @@ export const toOverlay = {
   /** Golpe de ritmo de la música (periodo en ms). */
   beat: 'music:beat',
   climb: 'pet:climb',
+  closeup: 'pet:closeup',
+  closeupEnd: 'pet:closeup-end',
 } as const;
 
 /** Ventana oculta que escucha el audio del PC para sacar el ritmo. */

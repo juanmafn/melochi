@@ -25,6 +25,8 @@ interface SkinAnimDef {
   tag?: string;
   fps?: number;
   loop?: boolean;
+  /** Escala propia (p. ej. 0.25 si los frames están dibujados 4 veces más grandes). */
+  escala?: number;
 }
 
 interface SkinJson {
@@ -107,7 +109,7 @@ export function loadSkinManifest(skinDir: string, id: string, version: number): 
         errors.push(`Animación "${name}": no tiene frames.`);
         continue;
       }
-      animaciones[name] = { fps: def.fps ?? 8, loop: def.loop ?? true, frames };
+      animaciones[name] = { fps: def.fps ?? 8, loop: def.loop ?? true, frames, escala: def.escala ?? 1 };
     } catch (err) {
       errors.push(`Animación "${name}": ${(err as Error).message}`);
     }

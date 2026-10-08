@@ -8,6 +8,7 @@ import {
   type ItemDef,
   type MoodDef,
   type MusicView,
+  type QuietReason,
   type Reaction,
   type StatDelta,
   type StatId,
@@ -112,6 +113,24 @@ export class Game {
     return this.settings.dndUntil > Date.now();
   }
 
+  /** Modo seguro detectado desde fuera (pantalla completa, llamada). */
+  private externalQuiet: Exclude<QuietReason, 'dnd'> | null = null;
+
+  setExternalQuiet(reason: Exclude<QuietReason, 'dnd'> | null): void {
+    if (reason === this.externalQuiet) return;
+    this.externalQuiet = reason;
+    this.hooks.changed();
+  }
+
+  /** Por qué está en silencio (sin bocadillos espontáneos, sonidos, travesuras ni tocar la música). */
+  get quietReason(): QuietReason | null {
+    return this.dndActive ? 'dnd' : this.externalQuiet;
+  }
+
+  get quiet(): boolean {
+    return this.quietReason !== null;
+  }
+
   get config(): GameConfig {
     return this.cfg;
   }
@@ -120,7 +139,7 @@ export class Game {
   canMischief(): boolean {
     return (
       this.isGrumpy &&
-      !this.dndActive &&
+      !this.quiet &&
       !this.welcome &&
       Date.now() - this.lastMischiefAt >= this.cfg.stats.travesuraCooldownMinutos * MINUTE
     );
@@ -218,7 +237,7 @@ export class Game {
       {
         anim: grumpy ? 'angry' : 'happy',
         sound: grumpy ? 'grunido' : 'risa',
-        bubble: !this.dndActive && this.i18n.hasBubble(key) ? this.i18n.bubble(key) : undefined,
+        bubble: !this.quiet && this.i18n.hasBubble(key) ? this.i18n.bubble(key) : undefined,
       },
       true,
     );
@@ -227,7 +246,7 @@ export class Game {
 
   private updateWelcome(now: number): void {
     // Si está en "No molestar", la bienvenida espera a que termine.
-    if (!this.welcome || now < this.welcomeAt || this.dndActive) return;
+    if (!this.welcome || now < this.welcomeAt || this.quiet) return;
     // Si se le ha pasado el enfado antes de saludar (la has cuidado), ya no hay travesura.
     if (this.welcome === 'angry' && !this.isGrumpy) this.welcome = 'back';
     const name = this.save.pet.name;
@@ -248,7 +267,7 @@ export class Game {
 
   /** Bocadillos espontáneos: primero las necesidades, si no, comentarios según el mood. */
   private updateChatter(now: number): void {
-    if (now < this.nextChatterAt || this.dndActive || this.welcome) return;
+    if (now < this.nextChatterAt || this.quiet || this.welcome) return;
     const talk = this.mood.comportamiento?.habla_sola ?? 0.3;
     this.nextChatterAt = now + (90 + Math.random() * 150) * 1000 * (1.5 - talk);
 
@@ -518,6 +537,7 @@ export class Game {
       itemNames: Object.fromEntries(this.cfg.items.items.map((i) => [i.id, this.i18n.loc(i.nombre, i.id)])),
       home,
       dndUntil: this.settings.dndUntil,
+      quiet: this.quietReason,
       muted: this.settings.muted,
       volume: this.settings.volume,
       music: this.music,

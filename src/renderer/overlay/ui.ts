@@ -324,7 +324,7 @@ export class StatsPanel extends Panel {
       rows.push(row);
     }
 
-    if (view.dndUntil > Date.now()) rows.push(el('div', 'dnd-badge', ui.dndBadge));
+    if (view.quiet) rows.push(el('div', 'dnd-badge', ui[`quiet_${view.quiet}`] ?? ui.dndBadge));
     this.body.replaceChildren(...rows);
   }
 }

@@ -27,6 +27,11 @@
   },
   "rechazoCariciasCabreada": 0.5,
   "travesuraCooldownMinutos": 10,
+  "modosSeguros": {
+    "pantallaCompleta": true,
+    "llamadas": true,
+    "ignorarMicrofono": ["obs64.exe", "obs32.exe"]
+  },
   "noMolestarUsosLibres": 3,
   "noMolestarMosqueo": 5
 }

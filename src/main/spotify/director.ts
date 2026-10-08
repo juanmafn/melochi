@@ -177,7 +177,7 @@ export class MusicDirector {
     const op = this.opinion(track);
     if (!op) return;
     const now = Date.now();
-    const showBubble = now - this.lastTasteBubbleAt > TASTE_BUBBLE_GAP && !this.game.dndActive;
+    const showBubble = now - this.lastTasteBubbleAt > TASTE_BUBBLE_GAP && !this.game.quiet;
     if (showBubble) this.lastTasteBubbleAt = now;
     if (op.kind === 'favorito') {
       this.game.adjust(this.cfg.efectos.artistaFavorito);
@@ -221,7 +221,7 @@ export class MusicDirector {
   async suggest(): Promise<void> {
     const now = Date.now();
     const mood = this.game.mood;
-    if (!this.connected || this.prompt || this.busy || this.game.dndActive || !this.userActive) return;
+    if (!this.connected || this.prompt || this.busy || this.game.quiet || !this.userActive) return;
     if (now - this.lastSuggestAt < this.cfg.sugerencias.cooldownMinutos * MINUTE) return;
     if (mood.musica?.modo !== 'sugerir' || !this.hasMusicFor(mood)) return;
     // Ya está sonando lo que ella puso para este mood.
@@ -364,7 +364,7 @@ export class MusicDirector {
 
   /** Travesura musical. `welcome` = la de bienvenida, que no espera a que pase el tiempo entre travesuras. */
   async mischief(welcome = false): Promise<boolean> {
-    if (this.busy || !this.connected || !this.userActive) return false;
+    if (this.busy || !this.connected || !this.userActive || this.game.quiet) return false;
     if (!welcome && !this.game.canMischief()) return false;
     this.busy = true;
     try {

@@ -155,6 +155,13 @@ export interface StatsConfig {
   rechazoCariciasCabreada: number;
   /** Minutos mínimos entre travesuras (musicales o de escritorio). */
   travesuraCooldownMinutos: number;
+  /** Modos seguros: no molestar con algo a pantalla completa o en llamadas. */
+  modosSeguros: {
+    pantallaCompleta: boolean;
+    llamadas: boolean;
+    /** Programas que usan el micrófono pero no son una llamada (p. ej. obs64.exe). */
+    ignorarMicrofono: string[];
+  };
   /** Usos de "No molestar" en 24 h a partir de los cuales se mosquea. */
   noMolestarUsosLibres: number;
   noMolestarMosqueo: number;
@@ -262,12 +269,16 @@ export interface GameView {
   /** Casa: monitor y x global. */
   home: { displayId: number; x: number };
   dndUntil: number;
+  /** Si está en silencio y por qué (No molestar, pantalla completa, llamada). */
+  quiet: QuietReason | null;
   muted: boolean;
   volume: number;
   music: MusicView;
   /** Textos de la interfaz en el idioma actual. */
   ui: Record<string, string>;
 }
+
+export type QuietReason = 'dnd' | 'fullscreen' | 'call';
 
 export interface MusicView {
   connected: boolean;

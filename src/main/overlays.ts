@@ -44,6 +44,8 @@ export class OverlayManager {
   private ready = new Set<number>();
   private drag: DragState | null = null;
   private rebuildTimer: NodeJS.Timeout | null = null;
+  /** Monitor con algo a pantalla completa: su ventana se oculta y la mascota no entra. */
+  private hiddenDisplay: number | null = null;
 
   constructor(
     private paths: Paths,
@@ -136,6 +138,7 @@ export class OverlayManager {
     win.setBounds(d.bounds);
     win.loadFile(join(this.paths.renderer, 'overlay.html'));
     win.once('ready-to-show', () => {
+      if (d.id === this.hiddenDisplay) return;
       win.showInactive();
       // En Windows, si se llama antes de mostrar la ventana, se pierde: hay que hacerlo después.
       win.setIgnoreMouseEvents(true, { forward: true });
@@ -210,8 +213,52 @@ export class OverlayManager {
 
   teleportHome(): void {
     const home = this.hooks.home();
-    const d = this.display(home.displayId) ?? this.primary();
-    this.setOwner(d.id, this.restingPose(d, home.x, groundY(d)), { appear: 'poof' });
+    let d = this.display(home.displayId) ?? this.primary();
+    let x = home.x;
+    // Si su casa está en el monitor a pantalla completa, espera en otro.
+    if (d.id === this.hiddenDisplay) {
+      const other = this.displays.find((o) => o.id !== this.hiddenDisplay);
+      if (!other) return;
+      d = other;
+      x = d.workArea.x + d.workArea.width - 150;
+    }
+    this.setOwner(d.id, this.restingPose(d, x, groundY(d)), { appear: 'poof' });
+  }
+
+  /** HWND de las ventanas overlay (para no confundirlas con una aplicación a pantalla completa). */
+  nativeHandles(): bigint[] {
+    return [...this.windows.values()].filter((w) => !w.isDestroyed()).map((w) => w.getNativeWindowHandle().readBigUInt64LE(0));
+  }
+
+  /**
+   * Hay algo a pantalla completa en un monitor (o ya no, si es null): se oculta su ventana para no taparlo
+   * y, si la mascota estaba ahí, se va a otro monitor. Si no hay otro, espera escondida.
+   */
+  setFullscreenDisplay(id: number | null): void {
+    if (id === this.hiddenDisplay) return;
+    const prev = this.hiddenDisplay;
+    this.hiddenDisplay = id;
+
+    if (prev !== null) {
+      const w = this.windows.get(prev);
+      if (w && !w.isDestroyed()) {
+        w.showInactive();
+        w.setAlwaysOnTop(true, 'screen-saver');
+        w.setIgnoreMouseEvents(true, { forward: true });
+      }
+    }
+    if (id === null) return;
+
+    this.windows.get(id)?.hide();
+    if (this.ownerId === id) {
+      this.cancelDrag();
+      const other = this.displays.find((d) => d.id !== id);
+      if (other) {
+        const home = this.hooks.home();
+        const x = home.displayId === other.id ? home.x : other.workArea.x + other.workArea.width - 150;
+        this.setOwner(other.id, this.restingPose(other, x, groundY(other)), { appear: 'poof' });
+      }
+    }
   }
 
   // ---------- Arrastrar y lanzar ----------
@@ -240,7 +287,7 @@ export class OverlayManager {
     if (drag.samples.length > 12) drag.samples.shift();
 
     const over = displayContaining(cursor.x, cursor.y, this.displays);
-    if (over && over.id !== this.ownerId) {
+    if (over && over.id !== this.ownerId && over.id !== this.hiddenDisplay) {
       this.setOwner(over.id, { ...this.pose, x, y, vx: 0, vy: 0, state: 'idle', goal: null }, { dragging: true });
     }
     this.pose = { ...this.pose, x, y };
@@ -308,7 +355,15 @@ export class OverlayManager {
 
     ipcMain.on(toMain.handoff, (e, pose: PetPose, targetId: number) => {
       const from = this.idFor(e.sender);
-      if (from !== this.ownerId || this.drag || !this.windows.has(targetId)) return;
+      if (from === undefined || from !== this.ownerId || this.drag || !this.windows.has(targetId)) return;
+      if (targetId === this.hiddenDisplay) {
+        // Ese monitor está a pantalla completa: se da la vuelta y se queda donde estaba.
+        const d = this.display(from)!;
+        const toRight = this.display(targetId)!.bounds.x > d.bounds.x;
+        const x = toRight ? d.bounds.x + d.bounds.width : d.bounds.x;
+        this.setOwner(from, { ...this.restingPose(d, x, groundY(d)), facing: toRight ? -1 : 1 });
+        return;
+      }
       this.setOwner(targetId, pose);
     });
 

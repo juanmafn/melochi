@@ -16,6 +16,7 @@ import { OverlayManager } from './overlays';
 import { resolvePaths } from './paths';
 import { loadSave, loadSettings, newSave, writeSave, writeSettings } from './save';
 import { MusicWindow } from './music-window';
+import { SafeMode } from './safe-mode';
 import { runSetup } from './setup-window';
 import { SKIN_SCHEME, SkinManager } from './skins';
 import { SpotifyApi } from './spotify/api';
@@ -203,7 +204,7 @@ async function start(): Promise<void> {
     musicMoods,
     spotifyConnected: () => auth.connected,
     config: () => game.config.brain,
-    dndActive: () => game.dndActive,
+    dndActive: () => game.quiet,
     userActive,
     act: runChatAction,
     react: (r) => overlays.sendToOwner(toOverlay.reaction, r),
@@ -237,9 +238,31 @@ async function start(): Promise<void> {
   setInterval(() => void refreshAi(), 30_000);
 
   overlays.start(save.pose);
+
+  // ---------- Modos seguros (pantalla completa y llamadas) ----------
+
+  const safeMode = new SafeMode({
+    displays: () => overlays.displays,
+    ownWindows: () => [
+      ...overlays.nativeHandles(),
+      ...BrowserWindow.getAllWindows()
+        .filter((w) => !w.isDestroyed())
+        .map((w) => w.getNativeWindowHandle().readBigUInt64LE(0)),
+    ],
+    enabled: () => game.config.stats.modosSeguros,
+    onChange: (s) => {
+      overlays.setFullscreenDisplay(s.fullscreenDisplayId);
+      game.setExternalQuiet(s.callApp ? 'call' : s.fullscreenDisplayId !== null ? 'fullscreen' : null);
+      console.log(`[seguro] pantalla completa: ${s.fullscreenDisplayId ?? 'no'} · llamada: ${s.callApp ?? 'no'}`);
+    },
+  });
+  safeMode.start();
+
   // Acceso para depurar con --inspect (no lo usa el juego).
   if (!app.isPackaged) {
-    Object.assign(globalThis, { __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama } });
+    Object.assign(globalThis, {
+      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode },
+    });
   }
 
   const persist = () => {

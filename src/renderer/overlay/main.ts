@@ -82,7 +82,7 @@ async function boot(): Promise<void> {
     view = v;
     pet.setView(v);
     sound.volume = v.volume;
-    sound.muted = v.muted || v.dndUntil > Date.now();
+    sound.muted = v.muted || v.quiet !== null;
     const version = skin?.manifest.version ?? 0;
     ground.render(v, version);
     for (const p of Object.values(panels)) if (p.isOpen) p.render(v, version);

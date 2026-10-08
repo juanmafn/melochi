@@ -275,9 +275,11 @@ Todos se lanzan desde el menú de clic derecho → **Jugar**. No están disponib
 - Huir del cursor cuando intentas acariciarla.
 
 ### 7.3 Modos seguros (no molesta ni toca la música)
-- **Juego o app a pantalla completa** detectada.
-- **Llamada en curso** (Discord / Teams / Zoom…; detección por uso del micrófono).
+- **Juego o app a pantalla completa** detectada: cada 1,5 s se mira si la ventana activa ocupa un monitor entero (o si Windows indica un juego D3D o modo presentación); tiene que durar 2 comprobaciones seguidas. La ventana de la mascota de ese monitor se oculta.
+- **Llamada en curso**: algún programa está usando el micrófono (Windows lo anota en el registro, `CapabilityAccessManager\ConsentStore\microphone`; se mira cada 8 s). Programas que usan el micro sin ser llamadas (p. ej. OBS) se ignoran con `modosSeguros.ignorarMicrofono` en `config/stats.json`. En llamada la mascota sigue visible, solo calla.
 - **"No molestar" manual** (menú clic derecho, con duración). Abusar de él sube Mosqueo.
+- Se puede desactivar cada modo en `config/stats.json` → `modosSeguros`.
+- El panel de Estado indica por qué está en silencio.
 
 En modo seguro no hay bocadillos, ni sonidos, ni travesuras, ni cambios de música. Con varios monitores, si hay pantalla completa en un monitor, se va a otro monitor y se queda tranquila allí. Si no hay otro monitor libre, se esconde.
 

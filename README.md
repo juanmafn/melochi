@@ -109,4 +109,7 @@ En `tools/` hay scripts que se conectan a esos puertos:
 | `tools/exstyle.mjs` | Muestra si la ventana deja pasar el ratón (`WS_EX_TRANSPARENT`). |
 | `tools/music.mjs` | Prueba Spotify: sugerencias, saltar su canción, travesuras, gustos y el Vinilo misterioso. **Pone música de verdad.** |
 | `tools/chat.mjs` | Prueba el chat con IA: enviar mensajes, bocadillos, recuerdos y comparar modelos (con tiempos). |
+| `tools/safe.mjs` | Vigila los modos seguros (pantalla completa, llamada) y qué ventanas están visibles. |
+| `tools/fullscreen-test/` | Abre una ventana a pantalla completa unos segundos (como un juego): `electron.exe tools/fullscreen-test 12`. |
+| `tools/mic-test/` | Usa el micrófono unos segundos sin grabar nada, para probar la detección de llamadas. |
 | `tools/watch.mjs` | Vigila durante N segundos los cambios de mood, bocadillos y canción (opcionalmente tras ejecutar algo en main). |

@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import type { GroundItem, InventorySlot, Lang, StatId, Stats } from '../shared/types';
+import type { GroundItem, InventorySlot, Lang, StatId, Stats, StickyNote } from '../shared/types';
 import type { GameConfig } from './config';
 import { readJson, writeJson } from './jsonfile';
 
@@ -18,6 +18,8 @@ export interface SaveData {
   mood: string;
   inventory: InventorySlot[];
   groundItems: GroundItem[];
+  /** Post-its que te ha dejado en el escritorio (travesura). Las partidas antiguas no lo tienen. */
+  notes?: StickyNote[];
   /** id del objeto → momento (ms) en que se puede volver a usar. */
   cooldowns: Record<string, number>;
   /** stat → momento (ms) hasta el que no baja. */

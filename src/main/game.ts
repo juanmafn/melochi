@@ -13,6 +13,7 @@ import {
   type StatDelta,
   type StatId,
   type StatOrAffinity,
+  type StickyNote,
 } from '../shared/types';
 import { clamp } from '../shared/displays';
 import type { GameConfig } from './config';
@@ -109,6 +110,11 @@ export class Game {
 
   private get isGrumpy(): boolean {
     return !!this.mood.comportamiento?.travesuras;
+  }
+
+  /** Está en un mood de travesuras (cabreada). */
+  get grumpy(): boolean {
+    return this.isGrumpy;
   }
 
   get dndActive(): boolean {
@@ -490,6 +496,32 @@ export class Game {
     return { anim: def.animacion ?? defaultAnim, sound, bubble: this.i18n.bubble(fav ? 'favorite' : 'thanks') };
   }
 
+  // ---------- Travesuras de escritorio ----------
+
+  get notes(): StickyNote[] {
+    return (this.save.notes ??= []);
+  }
+
+  addNote(note: StickyNote): void {
+    this.notes.push(note);
+    this.hooks.changed();
+  }
+
+  /** Has quitado un post-it suyo. */
+  dismissNote(id: string): void {
+    const idx = this.notes.findIndex((n) => n.id === id);
+    if (idx < 0) return;
+    this.notes.splice(idx, 1);
+    if (Math.random() < 0.4) this.react({ anim: 'angry', bubble: this.i18n.bubble('noteDismissed') });
+    this.hooks.changed();
+  }
+
+  /** Ha salido corriendo cuando ibas a acariciarla. */
+  fled(): void {
+    // Sin animación: la cortaría mientras corre.
+    this.react({ sound: 'risa', bubble: Math.random() < 0.5 ? this.i18n.bubble('fled') : undefined });
+  }
+
   // ---------- Ajustes ----------
 
   setDnd(minutes: number): void {
@@ -542,6 +574,8 @@ export class Game {
       inventory,
       maxSlots: this.cfg.items.maxHuecos,
       groundItems: this.save.groundItems,
+      notes: this.notes,
+      fleeChance: this.isGrumpy && !this.quiet ? this.cfg.stats.travesuras.huirDelCursor : 0,
       itemNames: Object.fromEntries(this.cfg.items.items.map((i) => [i.id, this.i18n.loc(i.nombre, i.id)])),
       home,
       dndUntil: this.settings.dndUntil,

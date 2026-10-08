@@ -63,6 +63,7 @@
     "hint_warm": "Warm… 🌤️",
     "hint_hot": "Hot! 🔥",
     "hint_burning": "You're burning up!! 🔥🔥",
+    "noteDismiss": "Click to remove it",
     "hint_otherScreen": "Not even close… try another screen 👀",
     "toyThrowMe": "Throw it! Throw it! 🎾",
     "toyLaser": "The dot! THE DOT! 🔴",
@@ -245,6 +246,23 @@
     "mischief_pausar": ["Silence! Hehehe 🤫", "Oops, the music stopped... who could it be? 😈"],
     "mischief_saltar": ["I don't like that one! Next! 😈", "Out with that song! Hehehe"],
     "mischief_secuestrar": ["I'm in charge now! 🎃", "Spooky music time! Mwahaha 👻"],
-    "mischief_cola": ["I left some surprises in your queue 🎃", "Hehehe, look what's coming up next 👻"]
+    "mischief_cola": ["I left some surprises in your queue 🎃", "Hehehe, look what's coming up next 👻"],
+    "mischief_esconderse": ["Bet you can't find me! 😈", "I'm leaving. Look for me if you care. Hmph."],
+    "mischief_sentarse": ["What a lovely view from up here 😏", "This window is mine now 😈", "Working? What a shame… 😏"],
+    "mischief_notita": ["I left you a little note 📝😤", "Read my note. Read my note. 📝"],
+    "hideMischiefFound": ["Hmph… you found me. Fine, I'm a tiny bit less mad.", "Ugh! I knew you'd come looking… 😤💕"],
+    "hideMischiefTimeout": ["You didn't even look for me? Typical. 😤", "Three minutes hiding and you didn't even notice… 😒"],
+    "hideMischiefMoved": ["Hey! I was right there! 😠", "You blew my hiding spot! 😤"],
+    "perchFell": ["Aaah! Warn me before you move it! 😠", "Ouch! I was sitting there! 😤"],
+    "fled": ["Don't even think about it! 😤", "No touching! Hehehe 😈", "Catch me if you can!"],
+    "noteDismissed": ["Hey! That was important! 😤", "Oh nice, throwing away my notes…"],
+    "noteText": [
+      "Some people feed their pets. Just saying.",
+      "Dear owner: I exist. Sincerely, me.",
+      "Mental note: someone forgot about me. Again.",
+      "I'm bored. And it's your fault. 😤",
+      "A little affection wouldn't kill you, you know.",
+      "This desktop would be nicer if you paid attention to me."
+    ]
   }
 }

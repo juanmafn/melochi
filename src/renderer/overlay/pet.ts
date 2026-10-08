@@ -1,6 +1,6 @@
 import { Graphics, Sprite, type Container } from 'pixi.js';
 import { clamp, groundY, neighborDisplay } from '../../shared/displays';
-import type { DisplayInfo, GameView, HideEdge, OwnMessage, PetGoal, PetPose } from '../../shared/types';
+import type { DisplayInfo, GameView, HideEdge, OwnMessage, PerchInfo, PetGoal, PetPose, Rect } from '../../shared/types';
 import type { OverlayApi } from '../../preload/overlay';
 import type { LoadedAnim, LoadedSkin } from './skin';
 
@@ -61,7 +61,13 @@ export class Pet {
   private speedMult = 1;
   /** Escondite: por dónde asoma. Con 'bottom' se recorta por debajo del suelo (detrás de la barra de tareas). */
   private hideEdge: HideEdge | null = null;
+  /** Escondida detrás de una ventana: solo se la ve en esta zona (local). */
+  private hideClip: Rect | null = null;
   private clip = new Graphics();
+  /** Encima de una ventana (coordenadas locales): ese es su suelo y no sale de ahí. */
+  private perch: PerchInfo | null = null;
+  /** Huyendo del cursor: no se para aunque se lo pongas encima. */
+  private fleeingUntil = 0;
 
   constructor(
     stage: Container,
@@ -78,11 +84,16 @@ export class Pet {
   // ---------- Geometría ----------
 
   private get ground(): number {
-    return groundY(this.display) - this.display.bounds.y;
+    return this.perch ? this.perch.y : groundY(this.display) - this.display.bounds.y;
   }
 
   private get width(): number {
     return this.display.bounds.width;
+  }
+
+  /** Por dónde puede andar: todo el monitor (menos un margen) o, si está encima de una ventana, solo por ella. */
+  private range(margin: number): [number, number] {
+    return this.perch ? [this.perch.minX, this.perch.maxX] : [margin, this.width - margin];
   }
 
   private get scale(): number {
@@ -127,7 +138,10 @@ export class Pet {
     if (!this.owned || !this.sprite.visible || !f || !this.skin) return false;
     const [ax, ay] = this.skin.manifest.ancla;
     // Escondida detrás de la barra de tareas: lo que queda por debajo del suelo no se ve ni se puede pulsar.
-    if (this.hideEdge === 'bottom' && py > this.ground) return false;
+    if (this.hideEdge === 'bottom' && !this.hideClip && py > this.ground) return false;
+    // Detrás de una ventana: lo que queda tapado tampoco.
+    const c = this.hideClip;
+    if (c && (px < c.x || px >= c.x + c.width || py < c.y || py >= c.y + c.height)) return false;
     const tx = Math.floor((px - this.x) / (this.facing * this.scale) + ax * f.width);
     const ty = Math.floor((py - this.y) / this.scale + ay * f.height);
     if (tx < 0 || ty < 0 || tx >= f.width || ty >= f.height) return false;
@@ -165,7 +179,9 @@ export class Pet {
     this.sprite.visible = true;
     this.sprite.alpha = 1;
     this.fx = msg.appear === 'poof' ? { kind: 'in', t: 0 } : null;
-    this.setHide(msg.hide ?? null);
+    const b = this.display.bounds;
+    this.perch = msg.perch ? { y: msg.perch.y - b.y, minX: msg.perch.minX - b.x, maxX: msg.perch.maxX - b.x } : null;
+    this.setHide(msg.hide ?? null, msg.hideClip);
 
     if (msg.hide) {
       this.setMode('hiding');
@@ -182,9 +198,16 @@ export class Pet {
     this.render();
   }
 
-  private setHide(edge: HideEdge | null): void {
+  /** `clip` (global): zona en la que se la ve, para asomar por detrás de una ventana. */
+  private setHide(edge: HideEdge | null, clip?: Rect): void {
     this.hideEdge = edge;
-    if (edge === 'bottom') {
+    const b = this.display.bounds;
+    this.hideClip = edge && clip ? { x: clip.x - b.x, y: clip.y - b.y, width: clip.width, height: clip.height } : null;
+    const c = this.hideClip;
+    if (c) {
+      this.clip.clear().rect(c.x, c.y, c.width, c.height).fill(0xffffff);
+      this.sprite.mask = this.clip;
+    } else if (edge === 'bottom') {
       this.clip.clear().rect(0, 0, this.width, this.ground).fill(0xffffff);
       this.sprite.mask = this.clip;
     } else {
@@ -196,6 +219,7 @@ export class Pet {
   release(poof: boolean): void {
     if (!this.owned) return;
     this.owned = false;
+    this.perch = null;
     this.setHide(null);
     if (poof) this.fx = { kind: 'out', t: 0 };
     else this.sprite.visible = false;
@@ -226,8 +250,36 @@ export class Pet {
     if (!this.owned || this.mode === 'dragged' || this.mode === 'fall') return;
     this.goal = null;
     this.speedMult = speedMult;
-    this.targetX = clamp(x, 12, this.width - 12);
+    const [lo, hi] = this.range(12);
+    this.targetX = clamp(x, lo, hi);
     if (this.mode !== 'walk') this.setMode('walk');
+  }
+
+  /** Sale corriendo lejos del cursor (cabreada, cuando ibas a acariciarla). Devuelve false si no puede. */
+  flee(cursorX: number): boolean {
+    if (!this.owned || this.playing || !['idle', 'walk', 'action'].includes(this.mode)) return false;
+    const [lo, hi] = this.range(12);
+    let dir: -1 | 1 = cursorX < this.x ? 1 : -1;
+    // Si está contra la pared, mejor por el otro lado (pasando junto al cursor).
+    if ((dir > 0 ? hi - this.x : this.x - lo) < 100) dir = dir > 0 ? -1 : 1;
+    const target = this.x + dir * (180 + Math.random() * 160);
+    if (Math.abs(clamp(target, lo, hi) - this.x) < 40) return false;
+    this.runTo(target, 2.8);
+    this.heldUntil = 0;
+    this.fleeingUntil = performance.now() + 1500;
+    return true;
+  }
+
+  /** Main la baja de la ventana: cae al suelo y, si `home`, después se va a casa. */
+  unperch(home: boolean): void {
+    if (!this.perch || !this.owned) return;
+    this.perch = null;
+    if (this.mode === 'dragged') return;
+    this.vx = 0;
+    this.vy = 0;
+    this.goal = home ? { kind: 'home' } : null;
+    this.targetX = null;
+    this.setMode('fall');
   }
 
   /** ¿Está quieta y en el suelo? (para saber si ha llegado adonde la mandó el juego) */
@@ -237,7 +289,7 @@ export class Pet {
 
   /** El cursor está encima: se para un momento. */
   hold(): void {
-    if (this.playing) return;
+    if (this.playing || performance.now() < this.fleeingUntil) return;
     this.heldUntil = performance.now() + 1500;
     if (this.mode === 'walk' && this.goal?.kind !== 'home') {
       this.targetX = null;
@@ -246,11 +298,13 @@ export class Pet {
   }
 
   startDrag(): void {
+    this.perch = null;
     this.setMode('dragged');
   }
 
   dragTo(globalX: number, globalY: number): void {
     if (!this.owned) return;
+    this.perch = null;
     if (this.mode !== 'dragged') this.setMode('dragged');
     const nx = globalX - this.display.bounds.x;
     if (Math.abs(nx - this.x) > 1) this.facing = nx > this.x ? 1 : -1;
@@ -271,6 +325,10 @@ export class Pet {
   goHome(): void {
     const home = this.view?.home;
     if (!home || !this.owned || this.mode === 'dragged' || this.mode === 'fall') return;
+    if (this.perch) {
+      this.unperch(true);
+      return;
+    }
     this.goal = { kind: 'home' };
     if (home.displayId === this.display.id) {
       this.targetX = clamp(home.x - this.display.bounds.x, EDGE_MARGIN, this.width - EDGE_MARGIN);
@@ -339,7 +397,8 @@ export class Pet {
   }
 
   private walkTo(x: number): void {
-    this.targetX = clamp(x, EDGE_MARGIN, this.width - EDGE_MARGIN);
+    const [lo, hi] = this.range(EDGE_MARGIN);
+    this.targetX = clamp(x, lo, hi);
     this.setMode('walk');
   }
 
@@ -375,7 +434,7 @@ export class Pet {
     }
 
     const dir: -1 | 1 = Math.random() < 0.5 ? -1 : 1;
-    if (neighborDisplay(this.display, dir, this.displays) && Math.random() < e * 0.2) {
+    if (!this.perch && neighborDisplay(this.display, dir, this.displays) && Math.random() < e * 0.2) {
       this.goal = { kind: 'cross', direction: dir };
       this.targetX = dir < 0 ? -EDGE_MARGIN : this.width + EDGE_MARGIN;
       this.setMode('walk');

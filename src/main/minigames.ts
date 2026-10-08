@@ -1,7 +1,7 @@
 import { screen } from 'electron';
 import { displayContaining, groundY } from '../shared/displays';
 import { toOverlay } from '../shared/ipc';
-import type { Choice, HideEdge, HintMessage, MinigameKind, Reaction } from '../shared/types';
+import type { Choice, DisplayInfo, HideEdge, HintMessage, MinigameKind, Reaction } from '../shared/types';
 import type { Game } from './game';
 import type { I18n } from './i18n';
 import type { OverlayManager } from './overlays';
@@ -42,6 +42,20 @@ function shuffle<T>(list: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/** Escondite al azar en los bordes de un monitor: por un lado (media cara) o detrás de la barra de tareas. */
+export function screenHideSpot(d: DisplayInfo): { x: number; y: number; edge: HideEdge } {
+  const edge: HideEdge = pick(['left', 'right', 'bottom'] as HideEdge[]);
+  const b = d.bounds;
+  const g = groundY(d);
+  if (edge === 'bottom') {
+    // Asoma por detrás de la barra de tareas: los pies quedan por debajo del suelo.
+    return { x: b.x + b.width * (0.1 + Math.random() * 0.8), y: g + 45, edge };
+  }
+  // Asoma la mitad de la cara (con un ojo) por el borde.
+  const x = edge === 'left' ? b.x + 5 : b.x + b.width - 5;
+  return { x, y: b.y + 140 + Math.random() * Math.max(0, g - b.y - 160), edge };
 }
 
 interface SavedPlayback {
@@ -107,7 +121,8 @@ export class Minigames {
   }
 
   canStart(kind: MinigameKind): boolean {
-    if (this.active || this.d.game.quiet) return false;
+    // Escondida (travesura) no juega: primero hay que encontrarla.
+    if (this.active || this.d.game.quiet || this.d.overlays.hiding) return false;
     return kind !== 'song' || this.d.auth.connected;
   }
 
@@ -272,20 +287,7 @@ export class Minigames {
       return;
     }
     const d = pick(displays);
-    const edge: HideEdge = pick(['left', 'right', 'bottom'] as HideEdge[]);
-    const b = d.bounds;
-    const g = groundY(d);
-    let x: number;
-    let y: number;
-    if (edge === 'bottom') {
-      // Asoma por detrás de la barra de tareas: los pies quedan por debajo del suelo.
-      x = b.x + b.width * (0.1 + Math.random() * 0.8);
-      y = g + 45;
-    } else {
-      // Asoma la mitad de la cara (con un ojo) por el borde.
-      x = edge === 'left' ? b.x + 5 : b.x + b.width - 5;
-      y = b.y + 140 + Math.random() * Math.max(0, g - b.y - 160);
-    }
+    const { x, y, edge } = screenHideSpot(d);
     this.hide = { until: Date.now() + HIDE_MS, displayId: d.id, x, y, lastHint: '', lastHintAt: 0 };
     this.d.overlays.hidePet(d.id, x, y, edge);
   }

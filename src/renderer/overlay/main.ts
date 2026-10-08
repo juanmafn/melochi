@@ -7,7 +7,7 @@ import { Input } from './input';
 import { Pet } from './pet';
 import { loadSkin, type LoadedSkin } from './skin';
 import { SoundPlayer } from './sound';
-import { Bubble, GroundItems, InventoryPanel, StatsPanel } from './ui';
+import { Bubble, GroundItems, InventoryPanel, StatsPanel, StickyNotes } from './ui';
 
 declare global {
   interface Window {
@@ -52,7 +52,9 @@ async function boot(): Promise<void> {
   const sound = new SoundPlayer();
   const bubble = new Bubble(uiRoot, (promptId, choiceId) => api.choose(promptId, choiceId));
   const toys = new Toys(app.stage, pet, api, display, (text) => bubble.show(text));
-  const input = new Input(pet, api, toys);
+  // Huye del cursor (cabreada), salvo si te está preguntando algo o jugando con un juguete.
+  const input = new Input(pet, api, toys, () => (bubble.waiting || toys.active ? 0 : (view?.fleeChance ?? 0)));
+  const notes = new StickyNotes(uiRoot, display, (id) => api.dismissNote(id));
   const ground = new GroundItems(uiRoot, display, (id) => api.collect(id));
   const inventory = new InventoryPanel(uiRoot, (slot) => api.useItem(slot), (x, y) => pet.hitTest(x, y));
   const stats = new StatsPanel(uiRoot);
@@ -103,6 +105,7 @@ async function boot(): Promise<void> {
     sound.muted = v.muted || v.quiet !== null;
     const version = skin?.manifest.version ?? 0;
     ground.render(v, version);
+    notes.render(v);
     for (const p of Object.values(panels)) if (p.isOpen) p.render(v, version);
   });
 
@@ -126,6 +129,8 @@ async function boot(): Promise<void> {
   });
 
   api.on('pet:go-home', () => pet.goHome());
+
+  api.on('pet:unperch', (msg: { home: boolean }) => pet.unperch(msg.home));
 
   api.on('toy:start', (msg: { kind: ToyKind }) => {
     if (view) toys.start(msg.kind, view.ui);

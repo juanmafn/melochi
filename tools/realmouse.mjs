@@ -1,6 +1,6 @@
 // Prueba con el ratón real de Windows (koffi). Antes de pulsar, comprueba que bajo el cursor está una ventana de Melochi.
 // Requiere el juego arrancado con --inspect=9334 (proceso principal) y --remote-debugging-port=9333.
-//   node tools/realmouse.mjs hover|drag|menu|throw
+//   node tools/realmouse.mjs hover|drag|menu|throw|flee
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const koffi = require('koffi');
@@ -92,8 +92,28 @@ async function hoverPet() {
   return { cx, cy, who: ownerOfPoint(cx, cy) };
 }
 
-let h = await hoverPet();
+// "flee" se acerca despacio desde lejos, así que no empieza encima de la mascota.
+let h = action === 'flee' ? { who: 'no comprobado' } : await hoverPet();
 console.log('encima de la mascota →', h.who);
+
+// Huir del cursor (cabreada): acerca el ratón despacio y mira si sale corriendo. Solo mueve, no pulsa.
+if (action === 'flee') {
+  const screenW = GetSystemMetrics(0);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const p0 = await livePet();
+    const side = p0.x + 320 < screenW ? 1 : -1;
+    const start = { x: Math.round(p0.x + side * 320), y: Math.round(p0.y - 40) };
+    SetCursorPos(start.x, start.y);
+    await sleep(500);
+    for (let i = 1; i <= 25; i++) {
+      SetCursorPos(Math.round(start.x + (p0.x - start.x) * (i / 25)), start.y);
+      await sleep(30);
+    }
+    await sleep(1500);
+    const p1 = await livePet();
+    console.log(`intento ${attempt}: x ${Math.round(p0.x)} → ${Math.round(p1.x)} (${Math.round(p1.x - p0.x)} px)`);
+  }
+}
 
 if (h.who === 'melochi' && action === 'drag') {
   mouse_event(LEFTDOWN, 0, 0, 0, 0);

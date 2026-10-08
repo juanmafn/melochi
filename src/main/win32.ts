@@ -30,6 +30,13 @@ interface Api {
   getMonitorInfo: (hmon: unknown, info: { cbSize: number; rcMonitor?: Win32Rect; rcWork?: Win32Rect; dwFlags?: number }) => boolean;
   getClassName: (hwnd: unknown, buf: Uint16Array, max: number) => number;
   queryNotificationState: ((out: number[]) => number) | null;
+  // Las mismas, pero con el HWND como número (para ventanas que se guardan y se consultan después).
+  isWindow: (hwnd: bigint) => boolean;
+  isWindowVisible: (hwnd: bigint) => boolean;
+  isIconic: (hwnd: bigint) => boolean;
+  isZoomed: (hwnd: bigint) => boolean;
+  getWindowRectN: (hwnd: bigint, out: Win32Rect) => boolean;
+  dwmFrameBounds: ((hwnd: bigint, attr: number, out: Win32Rect, size: number) => number) | null;
 }
 
 let api: Api | null | undefined;
@@ -51,6 +58,13 @@ function load(): Api | null {
     } catch {
       // No es imprescindible.
     }
+    let dwmFrameBounds: Api['dwmFrameBounds'] = null;
+    try {
+      const dwm = koffi.load('dwmapi.dll');
+      dwmFrameBounds = dwm.func('long __stdcall DwmGetWindowAttribute(intptr_t hwnd, uint32 attr, _Out_ MELOCHI_RECT *out, uint32 size)');
+    } catch {
+      // Sin DWM se usa GetWindowRect (incluye los bordes invisibles).
+    }
     api = {
       koffi,
       getAsyncKeyState: user32.func('short __stdcall GetAsyncKeyState(int vKey)'),
@@ -61,6 +75,12 @@ function load(): Api | null {
       getMonitorInfo: user32.func('bool __stdcall GetMonitorInfoW(void* hmon, _Inout_ MELOCHI_MONITORINFO *info)'),
       getClassName: user32.func('int __stdcall GetClassNameW(void* hwnd, _Out_ uint16_t *buf, int max)'),
       queryNotificationState,
+      isWindow: user32.func('bool __stdcall IsWindow(intptr_t hwnd)'),
+      isWindowVisible: user32.func('bool __stdcall IsWindowVisible(intptr_t hwnd)'),
+      isIconic: user32.func('bool __stdcall IsIconic(intptr_t hwnd)'),
+      isZoomed: user32.func('bool __stdcall IsZoomed(intptr_t hwnd)'),
+      getWindowRectN: user32.func('bool __stdcall GetWindowRect(intptr_t hwnd, _Out_ MELOCHI_RECT *rect)'),
+      dwmFrameBounds,
     };
   } catch (err) {
     console.warn('[win32] koffi no disponible:', err);
@@ -111,4 +131,24 @@ export function foregroundInfo(): ForegroundInfo | null {
     monitor: info.rcMonitor,
     shellFullscreen,
   };
+}
+
+export interface WindowState {
+  /** Rectángulo visible en píxeles físicos (sin los bordes invisibles de Windows 10/11). */
+  rect: Win32Rect;
+  visible: boolean;
+  minimized: boolean;
+  maximized: boolean;
+}
+
+const DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+/** Estado de una ventana por su HWND. null si ya no existe (o no se puede saber). */
+export function windowState(hwnd: bigint): WindowState | null {
+  const a = load();
+  if (!a || !a.isWindow(hwnd)) return null;
+  const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+  const ok = (a.dwmFrameBounds && a.dwmFrameBounds(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, rect, 16) === 0) || a.getWindowRectN(hwnd, rect);
+  if (!ok) return null;
+  return { rect, visible: a.isWindowVisible(hwnd), minimized: a.isIconic(hwnd), maximized: a.isZoomed(hwnd) };
 }

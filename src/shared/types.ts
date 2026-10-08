@@ -168,6 +168,20 @@ export interface StatsConfig {
     /** Mosqueo a partir del cual puede hacer trampas. */
     trampaDesdeMosqueo: number;
   };
+  /** Travesuras (cuando está cabreada). Las musicales necesitan Spotify. */
+  travesuras: {
+    /** Probabilidad relativa de cada tipo. */
+    pesos: Record<DesktopMischief, number>;
+    /** Probabilidad de que huya cuando acercas el cursor (cabreada). */
+    huirDelCursor: number;
+    /** Segundos que se queda escondida si no la encuentras. */
+    escondidaSegundos: number;
+    /** Segundos que se queda sentada encima de tu ventana. */
+    sentadaSegundos: number;
+    maxNotitas: number;
+    /** Mosqueo que se le pasa si la encuentras escondida. */
+    encontrarlaMosqueo: number;
+  };
   /** Modos seguros: no molestar con algo a pantalla completa o en llamadas. */
   modosSeguros: {
     pantallaCompleta: boolean;
@@ -277,6 +291,10 @@ export interface GameView {
   inventory: InventoryView[];
   maxSlots: number;
   groundItems: GroundItem[];
+  /** Post-its que ha dejado (travesura). */
+  notes: StickyNote[];
+  /** Probabilidad de que huya del cursor ahora (0 si no está cabreada). */
+  fleeChance: number;
   /** Nombres traducidos de todos los objetos (id → nombre). */
   itemNames: Record<string, string>;
   /** Casa: monitor y x global. */
@@ -338,7 +356,33 @@ export interface OwnMessage {
   dragging?: boolean;
   /** Escondite: se queda asomando por un borde de la pantalla o por detrás de la barra de tareas. */
   hide?: HideEdge;
+  /**
+   * Parte de la pantalla (global) en la que se la ve mientras está escondida. Así parece que asoma por detrás
+   * de una ventana. Sin ella, se ve todo (salvo con 'bottom', que se recorta por debajo del suelo).
+   */
+  hideClip?: Rect;
+  /** Encima de una ventana: ese es su suelo (y global) y solo anda entre minX y maxX (globales). */
+  perch?: PerchInfo;
 }
+
+export interface PerchInfo {
+  y: number;
+  minX: number;
+  maxX: number;
+}
+
+/** Post-it de la mascota en el escritorio (travesura). Coordenadas globales de su esquina superior izquierda. */
+export interface StickyNote {
+  id: string;
+  displayId: number;
+  x: number;
+  y: number;
+  text: string;
+  /** Inclinación en grados. */
+  rot: number;
+}
+
+export type DesktopMischief = 'musica' | 'esconderse' | 'sentarse' | 'notita';
 
 export type HideEdge = 'left' | 'right' | 'bottom';
 

@@ -20,6 +20,8 @@ const api = {
   choose: (promptId: string, choiceId: string) => ipcRenderer.send(toMain.choose, promptId, choiceId),
   openChat: () => ipcRenderer.send(toMain.openChat),
   toyDone: (kind: ToyKind) => ipcRenderer.send(toMain.toyDone, kind),
+  dismissNote: (id: string) => ipcRenderer.send(toMain.dismissNote, id),
+  fled: () => ipcRenderer.send(toMain.fled),
   on: (channel: (typeof toOverlay)[keyof typeof toOverlay], listener: Listener) => {
     ipcRenderer.on(channel, (_e, payload) => listener(payload));
   },

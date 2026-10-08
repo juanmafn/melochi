@@ -20,6 +20,7 @@ import {
   MEMORY_SCHEMA,
   bubbleTurn,
   memoryPrompt,
+  noteTurn,
   quizNote,
   storyNote,
   storyStartTurn,
@@ -400,6 +401,13 @@ export class Brain {
     void this.generateBubble('song').then((r) => r && this.hooks.react(r));
   }
 
+  /** Texto de un post-it pasivo-agresivo (travesura). null si la IA no está disponible o falla. */
+  async writeNote(): Promise<string | null> {
+    if (this.status !== 'online' || this.busy || this.generating || this.summarizing) return null;
+    const r = await this.generateBubble('note');
+    return r?.bubble ?? null;
+  }
+
   private async generateBubble(topic: string): Promise<Reaction | null> {
     this.generating = true;
     try {
@@ -407,7 +415,7 @@ export class Brain {
       const raw = await this.ollama.chat(
         [
           { role: 'system', content: systemPrompt(ctx) },
-          { role: 'user', content: bubbleTurn(ctx, topic) },
+          { role: 'user', content: topic === 'note' ? noteTurn(ctx) : bubbleTurn(ctx, topic) },
         ],
         { format: BUBBLE_SCHEMA, maxTokens: 60, temperature: 0.9, timeoutMs: BUBBLE_TIMEOUT_MS },
       );

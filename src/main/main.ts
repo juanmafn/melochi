@@ -8,6 +8,7 @@ import { Memory } from './brain/memory';
 import { OllamaClient } from './brain/ollama';
 import { ChatWindow } from './chat-window';
 import { Minigames } from './minigames';
+import { Mischief } from './mischief';
 import { loadConfig, type GameConfig } from './config';
 import { Game } from './game';
 import { I18n } from './i18n';
@@ -35,6 +36,8 @@ protocol.registerSchemesAsPrivileged([
 
 const INTERACTIONS: InteractionType[] = ['pet', 'tickle', 'poke', 'throw', 'throwHard'];
 const TOYS: ToyKind[] = ['pelota', 'laser'];
+/** Tocarla así cuenta como "encontrarla" si está escondida. */
+const TOUCHES: InteractionType[] = ['poke', 'pet', 'tickle'];
 const AUTOSAVE_MS = 30_000;
 
 if (!app.requestSingleInstanceLock()) {
@@ -117,7 +120,7 @@ async function start(): Promise<void> {
       react: (r) => overlays.sendToOwner(toOverlay.reaction, r),
       petSpot: () => overlays.petSpot(),
       moodChanged: (mood) => director.onMoodChanged(mood),
-      welcomeMischief: () => director.mischief(true),
+      welcomeMischief: () => mischief.run(true),
       special: (name) => {
         // Juguetes físicos: se juega en la ventana de la mascota y la recompensa llega al terminar.
         if (TOYS.includes(name as ToyKind)) {
@@ -256,16 +259,31 @@ async function start(): Promise<void> {
 
   overlays.start(save.pose);
 
+  // ---------- Travesuras (música y escritorio) ----------
+
+  const ownWindows = () => [
+    ...overlays.nativeHandles(),
+    ...BrowserWindow.getAllWindows()
+      .filter((w) => !w.isDestroyed())
+      .map((w) => w.getNativeWindowHandle().readBigUInt64LE(0)),
+  ];
+  const mischief: Mischief = new Mischief({
+    game,
+    i18n,
+    overlays,
+    music: { available: () => director.canMischief, run: (welcome) => director.mischief(welcome) },
+    writeNote: () => brain.writeNote(),
+    userActive,
+    // Ni en mitad de un juego ni mientras te está contestando en el chat.
+    busy: () => minigames.active !== null || !!brain.game || brain.busy,
+    ownWindows,
+  });
+
   // ---------- Modos seguros (pantalla completa y llamadas) ----------
 
   const safeMode = new SafeMode({
     displays: () => overlays.displays,
-    ownWindows: () => [
-      ...overlays.nativeHandles(),
-      ...BrowserWindow.getAllWindows()
-        .filter((w) => !w.isDestroyed())
-        .map((w) => w.getNativeWindowHandle().readBigUInt64LE(0)),
-    ],
+    ownWindows,
     enabled: () => game.config.stats.modosSeguros,
     onChange: (s) => {
       overlays.setFullscreenDisplay(s.fullscreenDisplayId);
@@ -278,7 +296,7 @@ async function start(): Promise<void> {
   // Acceso para depurar con --inspect (no lo usa el juego).
   if (!app.isPackaged) {
     Object.assign(globalThis, {
-      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames },
+      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames, mischief },
     });
   }
 
@@ -383,12 +401,14 @@ async function start(): Promise<void> {
   let suppressChatUntil = 0;
   ipcMain.on(toMain.interact, (_e, type: InteractionType) => {
     if (!INTERACTIONS.includes(type)) return;
-    if (type === 'poke' && minigames.onPoke()) {
+    if ((type === 'poke' && minigames.onPoke()) || (TOUCHES.includes(type) && mischief.onTouch())) {
       suppressChatUntil = Date.now() + 1500;
       return;
     }
     game.interact(type);
   });
+  ipcMain.on(toMain.dismissNote, (_e, id: string) => game.dismissNote(String(id)));
+  ipcMain.on(toMain.fled, () => game.fled());
   ipcMain.on(toMain.useItem, (_e, index: number) => {
     if (Number.isInteger(index)) game.useItem(index);
   });
@@ -397,7 +417,7 @@ async function start(): Promise<void> {
     if (!minigames.answer(String(promptId), String(choice))) void director.answer(String(promptId), String(choice));
   });
   ipcMain.on(toMain.openChat, () => {
-    if (minigames.active === 'hide' || Date.now() < suppressChatUntil) return;
+    if (minigames.active === 'hide' || overlays.hiding || Date.now() < suppressChatUntil) return;
     chatWindow.open();
   });
   ipcMain.on(toMain.toyDone, (_e, kind: ToyKind) => {
@@ -434,6 +454,8 @@ async function start(): Promise<void> {
   setInterval(persist, AUTOSAVE_MS);
   // Los minijuegos (sobre todo las pistas del escondite) necesitan ir algo más rápido que el bucle principal.
   setInterval(() => minigames.tick(), 400);
+  // Travesuras: también algo más rápido, para notar enseguida si mueves la ventana en la que está sentada.
+  setInterval(() => mischief.tick(), 400);
 
   watchDir(paths.config, () => {
     try {

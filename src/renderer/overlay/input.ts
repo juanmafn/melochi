@@ -10,6 +10,9 @@ const STROKE_MIN_TRAVEL = 12;
 const STROKES_FOR_PET = 4;
 const STROKE_WINDOW_MS = 2000;
 const PET_COOLDOWN_MS = 1200;
+/** Distancia (desde su contorno, aprox.) a la que nota que se acerca el cursor. */
+const FLEE_RADIUS = 60;
+const FLEE_COOLDOWN_MS = 2500;
 
 /**
  * La ventana deja pasar el ratón a lo que haya debajo, salvo cuando el cursor está sobre la mascota
@@ -24,11 +27,16 @@ export class Input {
   private stroke = { lastX: 0, dir: 0, travel: 0, times: [] as number[], cooldownUntil: 0 };
 
   private toyDrag = false;
+  /** El cursor está cerca de la mascota (para huir solo al acercarse, no a cada movimiento). */
+  private near = false;
+  private lastFleeAt = 0;
 
   constructor(
     private pet: Pet,
     private api: OverlayApi,
     private toys: Toys,
+    /** Probabilidad de que huya al acercarle el cursor (0 si no está cabreada o no puede). */
+    private fleeChance: () => number,
   ) {}
 
   install(): void {
@@ -65,11 +73,28 @@ export class Input {
   /** Llega también cuando la ventana ignora el ratón (eventos reenviados). */
   private onMouseMove(e: MouseEvent): void {
     this.toys.mouseMove(e.clientX, e.clientY);
+    if (!this.press && !this.dragging) this.checkFlee(e.clientX, e.clientY);
     this.setIgnore(!this.isInteractive(e.clientX, e.clientY));
     if (!this.press && !this.dragging && this.pet.hitTest(e.clientX, e.clientY)) {
       this.pet.hold();
       this.trackStroke(e.clientX);
     }
+  }
+
+  /** Cabreada, a veces sale corriendo cuando le acercas el cursor. */
+  private checkFlee(x: number, y: number): void {
+    if (!this.pet.owned) return;
+    const dist = Math.hypot(x - this.pet.x, y - (this.pet.y - this.pet.height / 2));
+    const isNear = dist < this.pet.height / 2 + FLEE_RADIUS;
+    const now = performance.now();
+    if (isNear && !this.near && now - this.lastFleeAt > FLEE_COOLDOWN_MS) {
+      const chance = this.fleeChance();
+      if (chance > 0 && Math.random() < chance && this.pet.flee(x)) {
+        this.lastFleeAt = now;
+        this.api.fled();
+      }
+    }
+    this.near = isNear;
   }
 
   /** Caricia: pasar el cursor de un lado a otro por encima de la mascota varias veces. */
@@ -114,7 +139,8 @@ export class Input {
       this.toys.pointerMove(e.clientX, e.clientY);
       return;
     }
-    if (!this.press || this.dragging) return;
+    // Escondida no se puede arrastrar: un clic es "¡te encontré!".
+    if (!this.press || this.dragging || this.pet.isHiding) return;
     if (Math.hypot(e.clientX - this.press.x, e.clientY - this.press.y) < DRAG_THRESHOLD) return;
     this.dragging = true;
     this.pet.startDrag();

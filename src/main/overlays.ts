@@ -2,7 +2,7 @@ import { BrowserWindow, ipcMain, screen, type Display, type WebContents } from '
 import { join } from 'node:path';
 import { clamp, displayContaining, groundY } from '../shared/displays';
 import { toMain, toOverlay } from '../shared/ipc';
-import type { DisplayInfo, HideEdge, InteractionType, OverlayInit, OwnMessage, PetPose } from '../shared/types';
+import type { DisplayInfo, HideEdge, InteractionType, OverlayInit, OwnMessage, PerchInfo, PetPose, Rect } from '../shared/types';
 import type { PetSpot } from './game';
 import type { Paths } from './paths';
 import { isPrimaryMouseDown } from './win32';
@@ -46,6 +46,10 @@ export class OverlayManager {
   private rebuildTimer: NodeJS.Timeout | null = null;
   /** Monitor con algo a pantalla completa: su ventana se oculta y la mascota no entra. */
   private hiddenDisplay: number | null = null;
+  /** Está escondida (asomando por un borde o por detrás de una ventana). */
+  hiding = false;
+  /** Está encima de una ventana (ese es su suelo). */
+  perch: PerchInfo | null = null;
 
   constructor(
     private paths: Paths,
@@ -197,6 +201,8 @@ export class OverlayManager {
     const prev = this.ownerId;
     this.ownerId = displayId;
     this.pose = pose;
+    this.hiding = !!extra.hide;
+    this.perch = extra.perch ?? null;
     if (prev !== null && prev !== displayId) this.send(prev, toOverlay.release, { poof: extra.appear === 'poof' });
     this.send(displayId, toOverlay.own, { pose, ...extra } satisfies OwnMessage);
   }
@@ -208,7 +214,23 @@ export class OverlayManager {
   }
 
   goHome(): void {
-    this.sendToOwner(toOverlay.goHome);
+    // Si está encima de una ventana, primero se baja de un salto.
+    if (this.perch) this.unperch(true);
+    else this.sendToOwner(toOverlay.goHome);
+  }
+
+  /** Se baja de la ventana en la que está subida (cae al suelo) y, si `home`, luego se va a casa. */
+  unperch(home = false): void {
+    if (!this.perch) return;
+    this.perch = null;
+    this.sendToOwner(toOverlay.unperch, { home });
+  }
+
+  /** Se sube encima de una ventana: aparece en x (global) sobre `perch.y`. */
+  perchPet(displayId: number, x: number, perch: PerchInfo): void {
+    this.cancelDrag();
+    const pose: PetPose = { x, y: perch.y, vx: 0, vy: 0, state: 'idle', facing: Math.random() < 0.5 ? -1 : 1, goal: null };
+    this.setOwner(displayId, pose, { appear: 'poof', perch });
   }
 
   teleportHome(): void {
@@ -230,10 +252,14 @@ export class OverlayManager {
     return this.displays.filter((d) => d.id !== this.hiddenDisplay);
   }
 
-  /** Esconde a la mascota asomando por un borde (escondite). (x, y) globales del punto de apoyo. */
-  hidePet(displayId: number, x: number, y: number, edge: HideEdge): void {
+  /**
+   * Esconde a la mascota asomando por un borde (escondite). (x, y) globales del punto de apoyo.
+   * `clip`: zona (global) en la que se la ve, para que parezca que está detrás de una ventana.
+   */
+  hidePet(displayId: number, x: number, y: number, edge: HideEdge, clip?: Rect): void {
     this.cancelDrag();
-    this.setOwner(displayId, { x, y, vx: 0, vy: 0, state: 'idle', facing: edge === 'right' ? -1 : 1, goal: null }, { appear: 'poof', hide: edge });
+    const pose: PetPose = { x, y, vx: 0, vy: 0, state: 'idle', facing: edge === 'right' ? -1 : 1, goal: null };
+    this.setOwner(displayId, pose, { appear: 'poof', hide: edge, ...(clip ? { hideClip: clip } : {}) });
   }
 
   /** Pone a la mascota en el suelo de un monitor, en x (global), con efecto de aparición. */
@@ -283,6 +309,9 @@ export class OverlayManager {
   private startDrag(displayId: number, offX: number, offY: number): void {
     if (this.ownerId !== displayId) return;
     this.cancelDrag();
+    // Al cogerla, deja de estar escondida o subida a una ventana.
+    this.hiding = false;
+    this.perch = null;
     this.drag = {
       offX,
       offY,

@@ -272,10 +272,11 @@ Todos se lanzan desde el menú de clic derecho → **Jugar**. No están disponib
 - Botón/menú **"¡A casa!"** para mandarla de vuelta.
 
 ### 7.2 Travesuras de escritorio (cabreada)
-- Esconderse (en el borde de la pantalla o detrás de una ventana) y que tengas que buscarla.
-- Sentarse encima de la ventana que estás usando.
-- Dejar **notitas pasivo-agresivas** (pequeñas notas tipo post-it generadas por el LLM).
-- Huir del cursor cuando intentas acariciarla.
+Las travesuras de música y las de escritorio salen del mismo sorteo, con pesos en `config/stats.json` → `travesuras.pesos` (`musica`, `esconderse`, `sentarse`, `notita`). Si la elegida no se puede hacer (no hay Spotify, tu ventana está maximizada, ya hay 3 notitas...), prueba con otra. Cuentan juntas para el máximo de 1 cada 10 minutos, y la de bienvenida también puede ser de escritorio.
+- **Esconderse:** avisa (*"¡A que no me encuentras!"*) y desaparece. Asoma media cara por un borde de la pantalla, por detrás de la barra de tareas o **por detrás de tu ventana activa** (por un lado o por encima, recortada para que parezca que está detrás). Si haces clic en ella o la acaricias, la has encontrado y se le pasa un poco el enfado (`encontrarlaMosqueo`). Si no, sale sola a los 3 minutos (`escondidaSegundos`) quejándose de que ni la has buscado. Si mueves o cierras la ventana tras la que estaba, sale protestando. Escondida no se puede arrastrar ni empezar un minijuego.
+- **Sentarse encima de tu ventana:** aparece sobre la barra de título de la ventana que estás usando y pasea por encima. Si la mueves, la minimizas o cambias a otra ventana, se cae (y se queja). A los 45 s (`sentadaSegundos`) se baja sola. "¡A casa!" la baja de un salto y la manda a casa. No lo hace con ventanas maximizadas o demasiado arriba (no cabría).
+- **Notitas pasivo-agresivas:** un post-it amarillo en el monitor que estás mirando, con un texto que escribe la IA según su estado (o una frase fija si no hay IA), firmado con su nombre. Se quita con un clic (a veces protesta). Máximo 3 a la vez (`maxNotitas`). Se guardan en la partida, así que siguen ahí si cierras el programa.
+- **Huir del cursor:** cuando le acercas el ratón, a veces sale corriendo en dirección contraria (`huirDelCursor`, probabilidad por cada acercamiento). No cuenta como travesura (no gasta los 10 minutos), pero solo pasa cabreada y fuera de los modos seguros. No huye si te está preguntando algo o jugando con un juguete.
 
 ### 7.3 Modos seguros (no molesta ni toca la música)
 - **Juego o app a pantalla completa** detectada: cada 1,5 s se mira si la ventana activa ocupa un monitor entero (o si Windows indica un juego D3D o modo presentación); tiene que durar 2 comprobaciones seguidas. La ventana de la mascota de ese monitor se oculta.

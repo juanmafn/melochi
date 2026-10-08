@@ -63,6 +63,7 @@
     "hint_warm": "Templado… 🌤️",
     "hint_hot": "¡Caliente! 🔥",
     "hint_burning": "¡¡Que te quemas!! 🔥🔥",
+    "noteDismiss": "Clic para quitarla",
     "hint_otherScreen": "Ni de lejos… prueba en otra pantalla 👀",
     "toyThrowMe": "¡Lánzamela! ¡Lánzamela! 🎾",
     "toyLaser": "¡El puntito! ¡EL PUNTITO! 🔴",
@@ -245,6 +246,23 @@
     "mischief_pausar": ["¡Silencio! Jijiji 🤫", "Uy, se ha parado la música... ¿quién habrá sido? 😈"],
     "mischief_saltar": ["¡Esa no me gusta! ¡Siguiente! 😈", "¡Fuera esa canción! Jijiji"],
     "mischief_secuestrar": ["¡Ahora mando yo! 🎃", "¡Hora de música spooky! Mwahaha 👻"],
-    "mischief_cola": ["Te he dejado unas sorpresitas en la cola 🎃", "Jijiji, mira lo que viene después 👻"]
+    "mischief_cola": ["Te he dejado unas sorpresitas en la cola 🎃", "Jijiji, mira lo que viene después 👻"],
+    "mischief_esconderse": ["¡A que no me encuentras! 😈", "Me voy. Búscame si te importo. Hmpf."],
+    "mischief_sentarse": ["Qué vistas tan bonitas desde aquí arriba 😏", "Esta ventana ahora es mía 😈", "¿Trabajando? Qué pena… 😏"],
+    "mischief_notita": ["Te he dejado una notita 📝😤", "Lee mi notita. Lee mi notita. 📝"],
+    "hideMischiefFound": ["Hmpf… me has encontrado. Vale, se me pasa un poquito.", "¡Jo! Ya sabía yo que me buscarías… 😤💕"],
+    "hideMischiefTimeout": ["¿Ni me has buscado? Típico. 😤", "Tres minutos escondida y ni te has dado cuenta… 😒"],
+    "hideMischiefMoved": ["¡Eh! ¡Que ahí estaba yo! 😠", "¡Me has destapado el escondite! 😤"],
+    "perchFell": ["¡Aaah! ¡Avisa antes de moverla! 😠", "¡Auch! ¡Que estaba ahí sentada! 😤"],
+    "fled": ["¡Ni se te ocurra! 😤", "¡No me toques! Jijiji 😈", "¡Atrápame si puedes!"],
+    "noteDismissed": ["¡Oye! ¡Que eso era importante! 😤", "Muy bonito, tirar mis notas…"],
+    "noteText": [
+      "Hay quien da de comer a su mascota. Solo digo eso.",
+      "Querido dueño: existo. Atentamente, yo.",
+      "Nota mental: alguien se ha olvidado de mí. Otra vez.",
+      "Me aburro. Y es culpa tuya. 😤",
+      "Un poquito de cariño no te costaba nada, ¿eh?",
+      "Este escritorio estaría mejor si me hicieras caso."
+    ]
   }
 }

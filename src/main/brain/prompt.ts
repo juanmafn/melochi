@@ -178,6 +178,7 @@ Dueño: enséñame el inventario
     } as Record<string, string>,
     bubble: (topic: string) =>
       `Di en voz alta un comentario espontáneo, MUY corto (máximo 12 palabras), sobre ${topic}. Devuelve SOLO un JSON: {"reply": "...", "emotion": "..."}`,
+    note: 'Estás cabreada con tu dueño. Escribe una notita pasivo-agresiva para pegarle un post-it en el escritorio: una queja sobre cómo te tiene (según tu estado), con ironía. MUY corta (máximo 15 palabras), sin saludar ni firmar. Devuelve SOLO un JSON: {"reply": "...", "emotion": "angry"}',
     memorySystem: (name: string, max: number) =>
       `Eres la memoria de ${name}, una mascota virtual. Tu trabajo: mantener una lista de recuerdos importantes sobre su dueño (nombre, gustos, planes, cosas que ha contado, si la trata bien o mal...).
 Recibes los recuerdos actuales y los últimos mensajes que ha escrito el dueño. Devuelve la lista ACTUALIZADA: añade lo nuevo e importante, corrige lo que haya cambiado, quita lo trivial o repetido. Máximo ${max} recuerdos, cada uno una frase corta en español. Si no hay nada nuevo, devuelve los mismos.
@@ -247,6 +248,7 @@ Owner: show me the inventory
     } as Record<string, string>,
     bubble: (topic: string) =>
       `Say out loud a spontaneous, VERY short comment (12 words max) about ${topic}. Return ONLY a JSON: {"reply": "...", "emotion": "..."}`,
+    note: "You're mad at your owner. Write a passive-aggressive note to stick on their desktop as a sticky note: a complaint about how they treat you (based on your state), with irony. VERY short (15 words max), no greeting or signature. Return ONLY a JSON: {\"reply\": \"...\", \"emotion\": \"angry\"}",
     memorySystem: (name: string, max: number) =>
       `You are the memory of ${name}, a virtual pet. Your job: keep a list of important memories about their owner (name, tastes, plans, things they told, whether they treat the pet well or badly...).
 You receive the current memories and the owner's latest messages. Return the UPDATED list: add what's new and important, fix what changed, drop trivial or repeated items. At most ${max} memories, each a short sentence in English. If nothing is new, return the same ones.
@@ -307,6 +309,11 @@ export function userTurn(ctx: PromptContext, text: string, gameNote?: string): s
 export function bubbleTurn(ctx: PromptContext, topic: string): string {
   const t = T[ctx.lang];
   return `${stateLine(ctx)}\n${t.bubble(t.bubbleTopics[topic] ?? t.bubbleTopics.idle)}`;
+}
+
+/** Post-it pasivo-agresivo que te deja en el escritorio cuando está cabreada. */
+export function noteTurn(ctx: PromptContext): string {
+  return `${stateLine(ctx)}\n${T[ctx.lang].note}`;
 }
 
 export function memoryPrompt(lang: Lang, petName: string, max: number, facts: string[], convo: { role: string; text: string }[]) {

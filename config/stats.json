@@ -29,6 +29,14 @@
   },
   "rechazoCariciasCabreada": 0.5,
   "travesuraCooldownMinutos": 10,
+  "travesuras": {
+    "pesos": { "musica": 3, "esconderse": 2, "sentarse": 2, "notita": 2 },
+    "huirDelCursor": 0.6,
+    "escondidaSegundos": 180,
+    "sentadaSegundos": 45,
+    "maxNotitas": 3,
+    "encontrarlaMosqueo": -8
+  },
   "minijuegos": {
     "ganar": { "diversion": 8, "carino": 4, "afinidad": 0.5 },
     "perder": { "diversion": 10 },

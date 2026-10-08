@@ -16,6 +16,8 @@ export const toMain = {
   choose: 'bubble:choose',
   openChat: 'chat:open',
   toyDone: 'toy:done',
+  dismissNote: 'note:dismiss',
+  fled: 'pet:fled',
 } as const;
 
 export const chatChannels = {
@@ -39,6 +41,7 @@ export const toOverlay = {
   panel: 'ui:panel',
   toy: 'toy:start',
   hint: 'game:hint',
+  unperch: 'pet:unperch',
 } as const;
 
 export const musicChannels = {

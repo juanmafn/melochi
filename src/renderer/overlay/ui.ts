@@ -129,6 +129,50 @@ export class GroundItems {
   }
 }
 
+// ---------- Post-its (travesura) ----------
+
+export class StickyNotes {
+  private root = el('div', 'notes-layer');
+  private nodes = new Map<string, HTMLElement>();
+
+  constructor(
+    parent: HTMLElement,
+    private display: DisplayInfo,
+    private onDismiss: (id: string) => void,
+  ) {
+    parent.appendChild(this.root);
+  }
+
+  render(view: GameView): void {
+    const mine = view.notes.filter((n) => n.displayId === this.display.id);
+    const ids = new Set(mine.map((n) => n.id));
+    for (const [id, node] of this.nodes) {
+      if (ids.has(id)) continue;
+      this.nodes.delete(id);
+      // Si la has quitado tú ya se está arrugando; si no, se va sin más.
+      if (!node.classList.contains('crumpled')) node.remove();
+    }
+    for (const n of mine) {
+      if (this.nodes.has(n.id)) continue;
+      const note = el('div', 'sticky-note interactive');
+      note.appendChild(el('div', 'sticky-text', n.text));
+      note.appendChild(el('div', 'sticky-sign', `— ${view.petName}`));
+      note.title = view.ui.noteDismiss ?? '';
+      note.style.left = `${n.x - this.display.bounds.x}px`;
+      note.style.top = `${n.y - this.display.bounds.y}px`;
+      note.style.setProperty('--rot', `${n.rot}deg`);
+      note.addEventListener('click', () => {
+        if (note.classList.contains('crumpled')) return;
+        note.classList.add('crumpled');
+        setTimeout(() => note.remove(), 400);
+        this.onDismiss(n.id);
+      });
+      this.root.appendChild(note);
+      this.nodes.set(n.id, note);
+    }
+  }
+}
+
 // ---------- Paneles ----------
 
 abstract class Panel {

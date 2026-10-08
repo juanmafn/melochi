@@ -208,6 +208,74 @@ canvas {
   font-weight: 700;
 }
 
+/* ---------- Post-its (travesura) ---------- */
+
+.sticky-note {
+  --rot: 0deg;
+  position: absolute;
+  width: 200px;
+  min-height: 130px;
+  box-sizing: border-box;
+  padding: 18px 16px 12px;
+  background: linear-gradient(180deg, #fff59d 0%, #fff176 100%);
+  color: #4a3b10;
+  font-family: 'Segoe Print', 'Comic Sans MS', 'Segoe UI', cursive;
+  font-size: 15px;
+  line-height: 1.35;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.15);
+  transform: rotate(var(--rot));
+  cursor: pointer;
+  animation: note-in 0.45s cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+
+/* La tira de "celo" de arriba. */
+.sticky-note::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 70px;
+  height: 20px;
+  margin-left: -35px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transform: rotate(-3deg);
+}
+
+.sticky-note:hover {
+  filter: brightness(1.04);
+}
+
+.sticky-text {
+  overflow-wrap: anywhere;
+}
+
+.sticky-sign {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.sticky-note.crumpled {
+  animation: note-out 0.4s forwards;
+  pointer-events: none;
+}
+
+@keyframes note-in {
+  from {
+    transform: rotate(var(--rot)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes note-out {
+  to {
+    transform: rotate(calc(var(--rot) + 40deg)) scale(0.15);
+    opacity: 0;
+  }
+}
+
 /* ---------- Paneles ---------- */
 
 .panel {

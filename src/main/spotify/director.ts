@@ -94,12 +94,16 @@ export class MusicDirector {
     if (now >= this.nextPollAt) void this.poll();
     if (this.prompt && now > this.prompt.expiresAt) this.prompt = null;
 
-    // Si no estás delante (o un minijuego está usando Spotify), ni sugiere ni hace travesuras.
+    // Si no estás delante (o un minijuego está usando Spotify), no sugiere. Las travesuras las decide Mischief.
     if (!this.userActive || this.suspended) return;
     const mood = this.game.mood;
     const silence = this.cfg.sugerencias.silencioMinutos * MINUTE;
     if (mood.musica?.modo === 'sugerir' && !this.state?.isPlaying && now - this.silenceSince > silence) void this.suggest();
-    if (mood.musica?.modo === 'travesura' && this.game.canMischief()) void this.mischief();
+  }
+
+  /** ¿Puede hacer una travesura con tu música ahora? */
+  get canMischief(): boolean {
+    return this.connected && !this.busy && !this.suspended && this.game.mood.musica?.modo === 'travesura';
   }
 
   async poll(force = false): Promise<void> {

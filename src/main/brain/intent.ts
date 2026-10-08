@@ -12,7 +12,10 @@ const STATS = /\b(c[oó]mo est[aá]s|qu[eé] tal est[aá]s|estado|stats|barras|s
 const HOME = /\b(casa|home|rinc[oó]n|vuelve|vete|go back)\b/i;
 const DND = /\b(no (me |nos )?molest\w*|d[eé]jame (en paz|tranquilo|trabajar)|silencio un rato|do not disturb|don'?t disturb|leave me alone|be quiet|stop bothering)\b/i;
 
+const DANCE = /\b(baila\w*|bailar|bailes|bailoteo|menea\w*|mu[eé]vete|dance|dancing|boogie|groove)\b/i;
+
 const RULES: Partial<Record<ChatActionType, RegExp>> = {
+  dance: DANCE,
   play_mood: MUSIC,
   play_search: MUSIC,
   pause: STOP,

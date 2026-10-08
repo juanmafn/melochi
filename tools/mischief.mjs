@@ -5,6 +5,8 @@
 //   node tools/mischief.mjs perch           sentarse encima de tu ventana activa (usa tools/window-test)
 //   node tools/mischief.mjs run             travesura al azar (sin las de música), como lo haría el juego
 //   node tools/mischief.mjs angry|calm      la pone cabreada (y con huida del cursor segura) o la calma
+//   node tools/mischief.mjs climb [s]       trepar a una ventana cercana y seguirla (usa tools/window-test)
+//   node tools/mischief.mjs dance [s]       pedirle que baile y contar los saltitos al ritmo (tiene que sonar algo)
 async function session(port, match) {
   const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
   const t = match ? targets.find((x) => x.type === 'page' && x.url.includes(match)) : targets[0];
@@ -109,6 +111,36 @@ if (kind === 'angry' || kind === 'calm') {
   for (let i = 0; i < 40 && (await main.ev(`!!${M}.perched`)); i++) await sleep(250);
   await watch(2500);
   console.log('  después:', await petState(), '· main perch:', await main.ev(`JSON.stringify(__melochi.overlays.perch)`));
+} else if (kind === 'climb') {
+  // Trepar a una ventana cercana (mejor con tools/window-test abierta) y seguirla hasta que baje.
+  console.log(
+    'trepa:',
+    await main.ev(`(() => { const c = __melochi.climber; c.d.userActive = () => true; const ok = c.tryClimb(); return ok ? JSON.stringify({ ventana: c.climb.target.rect, subida: __melochi.overlays.perch }) : false; })()`),
+  );
+  let last = '';
+  const end = Date.now() + (Number(mode) || 40) * 1000;
+  while (Date.now() < end) {
+    const s = await ov.ev(`JSON.stringify({ modo: __melochi.pet.mode, fase: __melochi.pet.climb?.phase ?? null, encima: !!__melochi.pet.perch })`);
+    if (s !== last) console.log(`  ${((Date.now() - end) / 1000 + (Number(mode) || 40)).toFixed(1)} s`, s, await petState().then((p) => JSON.parse(p)).then((p) => `x ${p.x} y ${p.y}`));
+    last = s;
+    const b = await bubble();
+    if (b && b !== lastBubble) console.log(`  💬 ${b}`);
+    lastBubble = b ?? lastBubble;
+    if (!(await main.ev(`__melochi.climber.active`)) && s.includes('"encima":false') && s.includes('idle')) break;
+    await sleep(200);
+  }
+} else if (kind === 'dance') {
+  // Pedirle que baile (como desde el menú) y contar los saltitos al ritmo.
+  console.log('oye:', await main.ev(`JSON.stringify(__melochi.audio.status)`));
+  console.log('pedido:', await main.ev(`__melochi.dancer.request()`));
+  // Se apunta cuándo da cada saltito (envolviendo beat() una sola vez aunque se repita la prueba).
+  await ov.ev(`(() => { const p = __melochi.pet; window.__hops = []; if (!p.__beat) { p.__beat = p.beat.bind(p); p.beat = (ms) => { p.__beat(ms); if (p.hop && p.hop.t === 0) window.__hops.push(performance.now()); }; } return true; })()`);
+  await watch(Number(mode) * 1000 || 10000);
+  const hops = await ov.ev(`JSON.stringify(window.__hops)`).then(JSON.parse);
+  const gaps = hops.slice(1).map((t, i) => t - hops[i]);
+  const avg = gaps.length ? gaps.reduce((s, v) => s + v, 0) / gaps.length : 0;
+  console.log(`  separación entre saltitos (ms): ${gaps.map(Math.round).join(' ')}`);
+  console.log(`saltitos: ${hops.length} · cada ${Math.round(avg)} ms (${avg ? Math.round(60000 / avg) : 0} BPM)`, '· animación:', await ov.ev(`__melochi.pet.animName`), '· oye:', await main.ev(`JSON.stringify(__melochi.audio.status)`));
 } else if (kind === 'run') {
   console.log(
     await main.ev(`(() => {

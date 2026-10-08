@@ -9,6 +9,9 @@ import { OllamaClient } from './brain/ollama';
 import { ChatWindow } from './chat-window';
 import { Minigames } from './minigames';
 import { Mischief } from './mischief';
+import { AudioListener } from './audio-listener';
+import { Climber } from './climber';
+import { Dancer } from './dance';
 import { loadConfig, type GameConfig } from './config';
 import { Game } from './game';
 import { I18n } from './i18n';
@@ -124,6 +127,8 @@ async function start(): Promise<void> {
       special: (name) => {
         // Juguetes físicos: se juega en la ventana de la mascota y la recompensa llega al terminar.
         if (TOYS.includes(name as ToyKind)) {
+          // Si está subida a una ventana, baja para jugar.
+          overlays.unperch();
           overlays.sendToOwner(toOverlay.toy, { kind: name });
           return true;
         }
@@ -204,6 +209,10 @@ async function start(): Promise<void> {
         game.setDnd([15, 30, 60].includes(n) ? n : 30);
         return null;
       }
+      case 'dance': {
+        const r = dancer.request();
+        return r === 'ok' ? null : t(r === 'grumpy' ? 'danceGrumpy' : r === 'nomusic' ? 'danceNoMusic' : 'danceBusy');
+      }
       default:
         return null;
     }
@@ -279,6 +288,29 @@ async function start(): Promise<void> {
     ownWindows,
   });
 
+  // ---------- Baile al ritmo (audio del PC) y trepar a las ventanas ----------
+
+  const audio = new AudioListener(paths, {
+    beat: (periodMs) => dancer.onBeat(periodMs),
+    status: (s) => dancer.onStatus(s),
+  });
+  const dancer: Dancer = new Dancer({
+    game,
+    i18n,
+    overlays,
+    audio,
+    userActive,
+    busy: () => minigames.active !== null,
+  });
+  const climber = new Climber({
+    game,
+    i18n,
+    overlays,
+    userActive,
+    busy: () => minigames.active !== null || dancer.dancing,
+    ownWindows,
+  });
+
   // ---------- Modos seguros (pantalla completa y llamadas) ----------
 
   const safeMode = new SafeMode({
@@ -296,7 +328,7 @@ async function start(): Promise<void> {
   // Acceso para depurar con --inspect (no lo usa el juego).
   if (!app.isPackaged) {
     Object.assign(globalThis, {
-      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames, mischief },
+      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames, mischief, audio, dancer, climber },
     });
   }
 
@@ -320,6 +352,10 @@ async function start(): Promise<void> {
       chat: (kind) => {
         chatWindow.open();
         void brain.startGame(kind);
+      },
+      dance: () => {
+        const r = dancer.request();
+        if (r === 'grumpy' || r === 'nomusic') game.say({ anim: r === 'grumpy' ? 'angry' : 'talk', bubble: i18n.bubble(r === 'grumpy' ? 'danceRefused' : 'danceNoMusic') });
       },
     },
     ai: {
@@ -456,6 +492,8 @@ async function start(): Promise<void> {
   setInterval(() => minigames.tick(), 400);
   // Travesuras: también algo más rápido, para notar enseguida si mueves la ventana en la que está sentada.
   setInterval(() => mischief.tick(), 400);
+  setInterval(() => climber.tick(), 400);
+  setInterval(() => dancer.tick(), 1000);
 
   watchDir(paths.config, () => {
     try {
@@ -479,6 +517,7 @@ async function start(): Promise<void> {
 
   app.on('before-quit', () => {
     persist();
+    audio.destroy();
     overlays.destroy();
     tray.destroy();
   });

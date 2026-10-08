@@ -1,7 +1,7 @@
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import type { OverlayApi } from '../../preload/overlay';
-import type { GameView, HintMessage, OwnMessage, PanelId, Reaction, ToyKind } from '../../shared/types';
+import type { ClimbMessage, GameView, HintMessage, OwnMessage, PanelId, Reaction, ToyKind } from '../../shared/types';
 import { Toys } from './toys';
 import { Input } from './input';
 import { Pet } from './pet';
@@ -131,6 +131,10 @@ async function boot(): Promise<void> {
   api.on('pet:go-home', () => pet.goHome());
 
   api.on('pet:unperch', (msg: { home: boolean }) => pet.unperch(msg.home));
+
+  api.on('pet:climb', (msg: ClimbMessage) => pet.climbTo(msg));
+
+  api.on('music:beat', (msg: { periodMs: number }) => pet.beat(msg.periodMs));
 
   api.on('toy:start', (msg: { kind: ToyKind }) => {
     if (view) toys.start(msg.kind, view.ui);

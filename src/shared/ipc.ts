@@ -18,6 +18,7 @@ export const toMain = {
   toyDone: 'toy:done',
   dismissNote: 'note:dismiss',
   fled: 'pet:fled',
+  climbAbort: 'pet:climb-abort',
 } as const;
 
 export const chatChannels = {
@@ -42,6 +43,20 @@ export const toOverlay = {
   toy: 'toy:start',
   hint: 'game:hint',
   unperch: 'pet:unperch',
+  /** Golpe de ritmo de la música (periodo en ms). */
+  beat: 'music:beat',
+  climb: 'pet:climb',
+} as const;
+
+/** Ventana oculta que escucha el audio del PC para sacar el ritmo. */
+export const audioChannels = {
+  /** main → ventana */
+  start: 'audio:start',
+  stop: 'audio:stop',
+  /** ventana → main */
+  beat: 'audio:beat',
+  status: 'audio:status',
+  error: 'audio:error',
 } as const;
 
 export const musicChannels = {

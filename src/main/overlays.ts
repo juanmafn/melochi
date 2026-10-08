@@ -2,7 +2,7 @@ import { BrowserWindow, ipcMain, screen, type Display, type WebContents } from '
 import { join } from 'node:path';
 import { clamp, displayContaining, groundY } from '../shared/displays';
 import { toMain, toOverlay } from '../shared/ipc';
-import type { DisplayInfo, HideEdge, InteractionType, OverlayInit, OwnMessage, PerchInfo, PetPose, Rect } from '../shared/types';
+import type { ClimbMessage, DisplayInfo, HideEdge, InteractionType, OverlayInit, OwnMessage, PerchInfo, PetPose, Rect } from '../shared/types';
 import type { PetSpot } from './game';
 import type { Paths } from './paths';
 import { isPrimaryMouseDown } from './win32';
@@ -226,6 +226,12 @@ export class OverlayManager {
     this.sendToOwner(toOverlay.unperch, { home });
   }
 
+  /** Va andando hasta el lateral de una ventana y trepa hasta arriba (desde ya cuenta como subida). */
+  climbPet(msg: ClimbMessage): void {
+    this.perch = msg.perch;
+    this.sendToOwner(toOverlay.climb, msg);
+  }
+
   /** Se sube encima de una ventana: aparece en x (global) sobre `perch.y`. */
   perchPet(displayId: number, x: number, perch: PerchInfo): void {
     this.cancelDrag();
@@ -423,6 +429,11 @@ export class OverlayManager {
     });
 
     ipcMain.on(toMain.dragEnd, () => this.endDrag());
+
+    // La mascota no ha podido trepar (estaba jugando...) o lo ha dejado a medias.
+    ipcMain.on(toMain.climbAbort, (e) => {
+      if (this.idFor(e.sender) === this.ownerId) this.perch = null;
+    });
 
     ipcMain.on(toMain.teleportHome, (e) => {
       if (this.idFor(e.sender) === this.ownerId) this.teleportHome();

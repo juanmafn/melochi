@@ -9,7 +9,7 @@
   //   { "frames": "carpeta/", "fps": 8, "loop": true }            → PNG numerados (000.png, 001.png...)
   //   { "sheet": "x.json", "fps": 8 }                              → sprite sheet de TexturePacker o Aseprite
   //   { "sheet": "x.json", "tag": "walk" }                         → una etiqueta (frameTags) de Aseprite
-  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted...
+  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted, dance, climb (pared a la derecha)...
   // Variantes por mood: "<mood>_<animación>" (feliz_idle, cabreada_walk...). Si no existe, se usa la genérica.
   "animaciones": {
     "idle": {"frames":"anims/idle/","fps":6,"loop":true},
@@ -23,6 +23,7 @@
     "dance": {"frames":"anims/dance/","fps":10,"loop":true},
     "mischief": {"frames":"anims/mischief/","fps":10,"loop":true},
     "hide_peek": {"frames":"anims/hide_peek/","fps":3,"loop":true},
+    "climb": {"frames":"anims/climb/","fps":8,"loop":true},
     "talk": {"frames":"anims/talk/","fps":8,"loop":true},
     "petted": {"frames":"anims/petted/","fps":8,"loop":true},
     "walk": {"sheet":"anims/walks.json","tag":"walk","loop":true},

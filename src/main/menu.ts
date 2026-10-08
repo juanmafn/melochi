@@ -12,6 +12,8 @@ export interface MenuActions {
     start(kind: MinigameKind): void;
     canChat(): boolean;
     chat(kind: ChatGameKind): void;
+    /** Pedirle que baile (si suena música y no está cabreada). */
+    dance(): void;
   };
   ai: {
     enabled(): boolean;
@@ -69,6 +71,8 @@ export function buildPetMenu(i18n: I18n, settings: Settings, a: MenuActions): Me
           enabled: a.play.canChat(),
           click: () => a.play.chat(kind),
         })),
+        { type: 'separator' as const },
+        { label: t('play_dance'), click: () => a.play.dance() },
       ],
     },
     { type: 'separator' },

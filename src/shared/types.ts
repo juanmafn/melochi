@@ -168,6 +168,17 @@ export interface StatsConfig {
     /** Mosqueo a partir del cual puede hacer trampas. */
     trampaDesdeMosqueo: number;
   };
+  /** Trepar por el lateral de una ventana y pasear por encima (cuando no está cabreada). */
+  trepar: {
+    /** Cada cuánto se lo plantea (segundos, entre mínimo y máximo). Con más ganas de explorar, más a menudo. */
+    cadaSegundos: [number, number];
+    /** Probabilidad de hacerlo cuando se lo plantea, con exploración 1 (se multiplica por la del mood). */
+    probabilidad: number;
+    /** Cuánto se queda arriba (segundos, entre mínimo y máximo). */
+    arribaSegundos: [number, number];
+    /** Distancia máxima (px) a la que busca una ventana. */
+    distanciaMax: number;
+  };
   /** Travesuras (cuando está cabreada). Las musicales necesitan Spotify. */
   travesuras: {
     /** Probabilidad relativa de cada tipo. */
@@ -230,6 +241,37 @@ export interface MusicConfig {
     artistaFavorito: StatDelta;
     artistaOdiado: StatDelta;
   };
+  /** Baile al ritmo del audio del PC (sin estar cabreada). */
+  baile: {
+    /** Escuchar el audio del PC para sacar el ritmo. */
+    activado: boolean;
+    duracionSegundos: [number, number];
+    /** Tiempo entre bailes espontáneos (minutos, entre mínimo y máximo). */
+    cadaMinutos: [number, number];
+    /** Segundos seguidos de música antes de animarse a bailar sola. */
+    musicaMinimaSegundos: number;
+    efectos: StatDelta;
+  };
+}
+
+/** Lo que oye por el audio del PC (lo manda la ventana oculta de audio). */
+export interface AudioStatus {
+  /** Hay música con un ritmo claro. */
+  music: boolean;
+  bpm: number;
+  /** Confianza en el ritmo (0..1). */
+  confidence: number;
+  /** Volumen (RMS 0..1). */
+  level: number;
+}
+
+/** Trepar a una ventana: coordenadas globales. */
+export interface ClimbMessage {
+  /** x donde trepa (junto al lateral de la ventana) y lado: 1 = la ventana está a su derecha. */
+  x: number;
+  side: 1 | -1;
+  /** Arriba del todo: ahí se sube (y su "suelo" pasa a ser el borde de la ventana). */
+  perch: PerchInfo;
 }
 
 // ---------- Estado de juego ----------
@@ -433,7 +475,8 @@ export type ChatActionType =
   | 'open_inventory'
   | 'open_stats'
   | 'go_home'
-  | 'dnd';
+  | 'dnd'
+  | 'dance';
 
 export interface ChatMessage {
   role: 'user' | 'pet' | 'system';

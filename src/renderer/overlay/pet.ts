@@ -1,12 +1,17 @@
 import { Graphics, Sprite, type Container } from 'pixi.js';
 import { clamp, groundY, neighborDisplay } from '../../shared/displays';
-import type { DisplayInfo, GameView, HideEdge, OwnMessage, PerchInfo, PetGoal, PetPose, Rect } from '../../shared/types';
+import type { ClimbMessage, DisplayInfo, GameView, HideEdge, OwnMessage, PerchInfo, PetGoal, PetPose, Rect } from '../../shared/types';
 import type { OverlayApi } from '../../preload/overlay';
 import type { LoadedAnim, LoadedSkin } from './skin';
 
-type Mode = 'idle' | 'walk' | 'fall' | 'action' | 'dragged' | 'hiding';
+type Mode = 'idle' | 'walk' | 'fall' | 'action' | 'dragged' | 'hiding' | 'climb';
 
 const GRAVITY = 2200;
+const CLIMB_SPEED = 95;
+/** Cuánto tarda el saltito final para ponerse encima de la ventana. */
+const MOUNT_MS = 380;
+/** Altura del saltito al ritmo (px, a escala 1). */
+const BEAT_HOP = 9;
 const WALK_SPEED = 70;
 const EDGE_MARGIN = 40;
 const REPORT_EVERY_MS = 1000;
@@ -20,6 +25,7 @@ const FALLBACK: Record<string, string> = {
   drink: 'eat',
   eat: 'happy',
   dance: 'happy',
+  climb: 'walk',
   mischief: 'angry',
   drag: 'fall',
   fall: 'idle',
@@ -68,6 +74,14 @@ export class Pet {
   private perch: PerchInfo | null = null;
   /** Huyendo del cursor: no se para aunque se lo pongas encima. */
   private fleeingUntil = 0;
+  /**
+   * Trepando a una ventana (local): primero anda hasta el lateral (x), luego sube pegada a él
+   * y al final da un saltito para quedarse encima (perch).
+   */
+  private climb: { x: number; side: 1 | -1; perch: PerchInfo; phase: 'approach' | 'up' | 'mount'; t: number; fromX: number } | null = null;
+  /** Saltito al ritmo de la música mientras baila (tiempo y duración en ms). */
+  private hop: { t: number; ms: number } | null = null;
+  private beats = 0;
 
   constructor(
     stage: Container,
@@ -179,8 +193,9 @@ export class Pet {
     this.sprite.visible = true;
     this.sprite.alpha = 1;
     this.fx = msg.appear === 'poof' ? { kind: 'in', t: 0 } : null;
-    const b = this.display.bounds;
-    this.perch = msg.perch ? { y: msg.perch.y - b.y, minX: msg.perch.minX - b.x, maxX: msg.perch.maxX - b.x } : null;
+    this.perch = msg.perch ? this.localPerch(msg.perch) : null;
+    this.climb = null;
+    this.hop = null;
     this.setHide(msg.hide ?? null, msg.hideClip);
 
     if (msg.hide) {
@@ -216,10 +231,16 @@ export class Pet {
     }
   }
 
+  private localPerch(p: PerchInfo): PerchInfo {
+    const b = this.display.bounds;
+    return { y: p.y - b.y, minX: p.minX - b.x, maxX: p.maxX - b.x };
+  }
+
   release(poof: boolean): void {
     if (!this.owned) return;
     this.owned = false;
     this.perch = null;
+    this.climb = null;
     this.setHide(null);
     if (poof) this.fx = { kind: 'out', t: 0 };
     else this.sprite.visible = false;
@@ -238,7 +259,7 @@ export class Pet {
   }
 
   react(anim: string, durationMs?: number): void {
-    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'hiding') return;
+    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'hiding' || this.mode === 'climb') return;
     this.play(anim, true);
     const a = this.anim;
     const total = a ? a.frames.reduce((s, f) => s + f.duration, 0) : 0;
@@ -247,7 +268,9 @@ export class Pet {
 
   /** Corre hasta x (local) mientras juega. No interrumpe si la están arrastrando o está cayendo. */
   runTo(x: number, speedMult = 2.2): void {
-    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall') return;
+    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'climb') return;
+    // Un juguete o huir del cursor es más importante que trepar.
+    this.cancelClimb(true);
     this.goal = null;
     this.speedMult = speedMult;
     const [lo, hi] = this.range(12);
@@ -272,7 +295,18 @@ export class Pet {
 
   /** Main la baja de la ventana: cae al suelo y, si `home`, después se va a casa. */
   unperch(home: boolean): void {
-    if (!this.perch || !this.owned) return;
+    if (!this.owned) return;
+    if (this.climb) {
+      // Aún trepando (o yendo hacia la ventana): lo deja.
+      const wasUp = this.mode === 'climb';
+      this.climb = null;
+      if (!wasUp) {
+        if (home) this.goHome();
+        return;
+      }
+    } else if (!this.perch) {
+      return;
+    }
     this.perch = null;
     if (this.mode === 'dragged') return;
     this.vx = 0;
@@ -297,14 +331,76 @@ export class Pet {
     }
   }
 
+  /** Main la manda trepar a una ventana. Si no puede (está jugando, cayendo...), se lo dice. */
+  climbTo(msg: ClimbMessage): void {
+    if (!this.owned || this.playing || this.perch || !['idle', 'walk', 'action'].includes(this.mode)) {
+      this.api.climbAbort();
+      return;
+    }
+    const x = clamp(msg.x - this.display.bounds.x, 5, this.width - 5);
+    this.climb = { x, side: msg.side, perch: this.localPerch(msg.perch), phase: 'approach', t: 0, fromX: x };
+    this.goal = null;
+    this.speedMult = 1.3;
+    this.targetX = x;
+    this.setMode('walk');
+  }
+
+  private cancelClimb(notify: boolean): void {
+    if (!this.climb) return;
+    this.climb = null;
+    if (notify) this.api.climbAbort();
+  }
+
+  private stepClimb(dt: number): void {
+    const c = this.climb;
+    if (!c) {
+      this.setMode('fall');
+      return;
+    }
+    if (c.phase === 'up') {
+      this.facing = c.side;
+      this.y -= CLIMB_SPEED * dt;
+      if (this.y <= c.perch.y) {
+        this.y = c.perch.y;
+        c.phase = 'mount';
+        c.t = 0;
+        c.fromX = this.x;
+        this.play('happy');
+      }
+      return;
+    }
+    // Saltito para ponerse encima, ya dentro de la ventana.
+    c.t += dt * 1000;
+    const k = Math.min(1, c.t / MOUNT_MS);
+    const toX = clamp(c.fromX + c.side * 55, c.perch.minX, c.perch.maxX);
+    this.x = c.fromX + (toX - c.fromX) * k;
+    this.y = c.perch.y - Math.sin(Math.PI * k) * 28;
+    if (k >= 1) {
+      this.perch = c.perch;
+      this.climb = null;
+      this.y = this.perch.y;
+      this.idleFor(1200);
+    }
+  }
+
+  /** Golpe de ritmo de la música: si está bailando, da un saltito con él. */
+  beat(periodMs: number): void {
+    if (!this.owned || this.mode !== 'action' || this.animName !== this.resolveAnim('dance')) return;
+    this.hop = { t: 0, ms: clamp(periodMs * 0.85, 180, 450) };
+    // Cada 4 golpes se da la vuelta (como un paso de baile).
+    if (++this.beats % 4 === 0) this.facing = this.facing === 1 ? -1 : 1;
+  }
+
   startDrag(): void {
     this.perch = null;
+    this.climb = null;
     this.setMode('dragged');
   }
 
   dragTo(globalX: number, globalY: number): void {
     if (!this.owned) return;
     this.perch = null;
+    this.climb = null;
     if (this.mode !== 'dragged') this.setMode('dragged');
     const nx = globalX - this.display.bounds.x;
     if (Math.abs(nx - this.x) > 1) this.facing = nx > this.x ? 1 : -1;
@@ -368,6 +464,9 @@ export class Pet {
       case 'fall':
         this.stepFall(dt);
         break;
+      case 'climb':
+        this.stepClimb(dt);
+        break;
       case 'action':
         if (now >= this.modeUntil && (this.animDone || this.anim?.loop !== false)) this.idleFor(800 + Math.random() * 1500);
         break;
@@ -376,6 +475,10 @@ export class Pet {
         break;
     }
 
+    if (this.hop) {
+      this.hop.t += dtMs;
+      if (this.hop.t >= this.hop.ms || this.mode !== 'action') this.hop = null;
+    }
     this.advanceAnim(dtMs);
     this.render();
 
@@ -412,6 +515,8 @@ export class Pet {
         return 'drag';
       case 'hiding':
         return 'hide_peek';
+      case 'climb':
+        return 'climb';
       default:
         return 'idle';
     }
@@ -425,6 +530,13 @@ export class Pet {
     }
     if (this.goal?.kind === 'home') {
       this.goHome();
+      return;
+    }
+    // Iba hacia una ventana para trepar (y algo la ha parado un momento): sigue.
+    if (this.climb) {
+      this.speedMult = 1.3;
+      this.targetX = this.climb.x;
+      this.setMode('walk');
       return;
     }
     const e = this.view?.mood.comportamiento.exploracion ?? 0.4;
@@ -470,6 +582,13 @@ export class Pet {
     if (Math.abs(this.targetX - this.x) < 1) {
       this.targetX = null;
       this.speedMult = 1;
+      if (this.climb?.phase === 'approach') {
+        // Junto al lateral: a trepar, mirando a la ventana.
+        this.climb.phase = 'up';
+        this.facing = this.climb.side;
+        this.setMode('climb');
+        return;
+      }
       if (this.goal?.kind === 'home') this.goal = null;
       if (this.playing) this.idleFor(200);
       else this.idleFor((1500 + Math.random() * 4000) * (1.5 - (this.view?.mood.comportamiento.exploracion ?? 0.4)));
@@ -586,8 +705,19 @@ export class Pet {
       alpha = this.fx.kind === 'in' ? k : 1 - k;
       s *= this.fx.kind === 'in' ? 0.6 + 0.4 * k : 1 + 0.3 * k;
     }
+    // Saltito al ritmo: sube y baja, y se aplasta un poco al despegar y al aterrizar.
+    let hopY = 0;
+    let sx = 1;
+    let sy = 1;
+    if (this.hop) {
+      const k = this.hop.t / this.hop.ms;
+      hopY = Math.sin(Math.PI * k) * BEAT_HOP * s;
+      const squash = k < 0.12 || k > 0.88 ? 0.06 : 0;
+      sx = 1 + squash;
+      sy = 1 - squash;
+    }
     this.sprite.alpha = alpha;
-    this.sprite.position.set(Math.round(this.x), Math.round(this.y));
-    this.sprite.scale.set(this.facing * s, s);
+    this.sprite.position.set(Math.round(this.x), Math.round(this.y - hopY));
+    this.sprite.scale.set(this.facing * s * sx, s * sy);
   }
 }

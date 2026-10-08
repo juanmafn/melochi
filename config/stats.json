@@ -29,6 +29,12 @@
   },
   "rechazoCariciasCabreada": 0.5,
   "travesuraCooldownMinutos": 10,
+  "trepar": {
+    "cadaSegundos": [40, 100],
+    "probabilidad": 0.6,
+    "arribaSegundos": [20, 60],
+    "distanciaMax": 700
+  },
   "travesuras": {
     "pesos": { "musica": 3, "esconderse": 2, "sentarse": 2, "notita": 2 },
     "huirDelCursor": 0.6,

@@ -22,6 +22,7 @@ const api = {
   toyDone: (kind: ToyKind) => ipcRenderer.send(toMain.toyDone, kind),
   dismissNote: (id: string) => ipcRenderer.send(toMain.dismissNote, id),
   fled: () => ipcRenderer.send(toMain.fled),
+  climbAbort: () => ipcRenderer.send(toMain.climbAbort),
   on: (channel: (typeof toOverlay)[keyof typeof toOverlay], listener: Listener) => {
     ipcRenderer.on(channel, (_e, payload) => listener(payload));
   },

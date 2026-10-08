@@ -38,5 +38,18 @@
     "abandonarSuMusica": { "mosqueo": 2 },
     "artistaFavorito": { "diversion": 3 },
     "artistaOdiado": { "mosqueo": 2 }
+  },
+
+  // Baile al ritmo: escucha el sonido del PC (cualquier programa), solo para sacar el ritmo; no graba nada.
+  // No escucha en los modos seguros (pantalla completa, llamada, No molestar) ni si no estás delante.
+  "baile": {
+    "activado": true,
+    // Cuánto dura cada baile (entre mínimo y máximo).
+    "duracionSegundos": [20, 40],
+    // Tiempo entre bailes que se marca ella sola (si no está cabreada y suena algo).
+    "cadaMinutos": [4, 10],
+    // Tiene que sonar música con ritmo al menos este tiempo antes de animarse.
+    "musicaMinimaSegundos": 8,
+    "efectos": { "diversion": 4 }
   }
 }

@@ -465,6 +465,23 @@ const ANIMS = {
     loop: true,
     f: (i) => ({ look: [-1, -1, 0, 1, 1, 0][i], eyes: i === 2 ? 'blink' : 'open', mouth: 'flat', antenna: [-0.2, -0.2, 0, 0.2, 0.2, 0][i] }),
   },
+  // Trepando: pegada a una pared que tiene a la derecha, con los pies contra ella, uno y otro.
+  climb: {
+    n: 4,
+    fps: 8,
+    loop: true,
+    f: (i) => ({
+      dx: 6,
+      dy: [0, -3, 0, -3][i],
+      sx: 0.92,
+      sy: 1.06,
+      look: 1,
+      mouth: 'flat',
+      antenna: -0.3 + sin(i, 4, 0.12),
+      // Los pies se dibujan detrás del cuerpo: tienen que salir por la derecha para verse.
+      feet: i % 2 ? [[60, -44], [30, -8]] : [[60, -14], [30, -38]],
+    }),
+  },
   talk: { n: 4, fps: 8, f: (i) => ({ mouth: 'open', mouthK: [0.9, 0.3, 0.7, 0.2][i], antenna: sin(i, 4, 0.1), sy: 1 + sin(i, 4, 0.015) }) },
   petted: {
     n: 6,
@@ -798,7 +815,7 @@ write(
   //   { "frames": "carpeta/", "fps": 8, "loop": true }            → PNG numerados (000.png, 001.png...)
   //   { "sheet": "x.json", "fps": 8 }                              → sprite sheet de TexturePacker o Aseprite
   //   { "sheet": "x.json", "tag": "walk" }                         → una etiqueta (frameTags) de Aseprite
-  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted...
+  // Nombres: idle, walk, drag, fall, eat, drink, happy, angry, talk, petted, dance, climb (pared a la derecha)...
   // Variantes por mood: "<mood>_<animación>" (feliz_idle, cabreada_walk...). Si no existe, se usa la genérica.
   "animaciones": {
 ${animLines}

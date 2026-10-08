@@ -37,6 +37,12 @@ interface Api {
   isZoomed: (hwnd: bigint) => boolean;
   getWindowRectN: (hwnd: bigint, out: Win32Rect) => boolean;
   dwmFrameBounds: ((hwnd: bigint, attr: number, out: Win32Rect, size: number) => number) | null;
+  dwmCloaked: ((hwnd: bigint, attr: number, out: number[], size: number) => number) | null;
+  enumWindows: (cb: unknown, lparam: number) => boolean;
+  enumProc: unknown;
+  getWindowLong: (hwnd: bigint, index: number) => number | bigint;
+  getClassNameN: (hwnd: bigint, buf: Uint16Array, max: number) => number;
+  getTitleLength: (hwnd: bigint) => number;
 }
 
 let api: Api | null | undefined;
@@ -59,9 +65,11 @@ function load(): Api | null {
       // No es imprescindible.
     }
     let dwmFrameBounds: Api['dwmFrameBounds'] = null;
+    let dwmCloaked: Api['dwmCloaked'] = null;
     try {
       const dwm = koffi.load('dwmapi.dll');
       dwmFrameBounds = dwm.func('long __stdcall DwmGetWindowAttribute(intptr_t hwnd, uint32 attr, _Out_ MELOCHI_RECT *out, uint32 size)');
+      dwmCloaked = dwm.func('DwmGetWindowAttribute', 'long', ['intptr_t', 'uint32', koffi.out(koffi.pointer('uint32')), 'uint32']);
     } catch {
       // Sin DWM se usa GetWindowRect (incluye los bordes invisibles).
     }
@@ -81,6 +89,12 @@ function load(): Api | null {
       isZoomed: user32.func('bool __stdcall IsZoomed(intptr_t hwnd)'),
       getWindowRectN: user32.func('bool __stdcall GetWindowRect(intptr_t hwnd, _Out_ MELOCHI_RECT *rect)'),
       dwmFrameBounds,
+      dwmCloaked,
+      enumProc: koffi.proto('bool __stdcall MELOCHI_ENUMPROC(intptr_t hwnd, intptr_t lparam)'),
+      enumWindows: user32.func('bool __stdcall EnumWindows(MELOCHI_ENUMPROC *cb, intptr_t lparam)'),
+      getWindowLong: user32.func('intptr_t __stdcall GetWindowLongPtrW(intptr_t hwnd, int index)'),
+      getClassNameN: user32.func('int __stdcall GetClassNameW(intptr_t hwnd, _Out_ uint16_t *buf, int max)'),
+      getTitleLength: user32.func('int __stdcall GetWindowTextLengthW(intptr_t hwnd)'),
     };
   } catch (err) {
     console.warn('[win32] koffi no disponible:', err);
@@ -142,6 +156,46 @@ export interface WindowState {
 }
 
 const DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+export interface WindowInfo extends WindowState {
+  hwnd: bigint;
+  className: string;
+}
+
+const GWL_EXSTYLE = -20;
+const WS_EX_TOOLWINDOW = 0x80;
+const DWMWA_CLOAKED = 14;
+
+/**
+ * Ventanas de programas visibles en pantalla, de la de delante a la de atrás (orden Z).
+ * Sin minimizadas, ocultas (otros escritorios virtuales, apps "suspendidas"), ventanas de herramientas ni sin título.
+ */
+export function listWindows(): WindowInfo[] {
+  const a = load();
+  if (!a) return [];
+  const out: WindowInfo[] = [];
+  const buf = new Uint16Array(128);
+  const cb = a.koffi.register((raw: number | bigint) => {
+    const hwnd = BigInt(raw);
+    if (!a.isWindowVisible(hwnd) || a.isIconic(hwnd) || a.getTitleLength(hwnd) === 0) return true;
+    if (Number(a.getWindowLong(hwnd, GWL_EXSTYLE)) & WS_EX_TOOLWINDOW) return true;
+    if (a.dwmCloaked) {
+      const cloaked = [0];
+      if (a.dwmCloaked(hwnd, DWMWA_CLOAKED, cloaked, 4) === 0 && cloaked[0] !== 0) return true;
+    }
+    const st = windowState(hwnd);
+    if (!st || st.rect.right - st.rect.left < 2 || st.rect.bottom - st.rect.top < 2) return true;
+    const n = a.getClassNameN(hwnd, buf, 128);
+    out.push({ ...st, hwnd, className: String.fromCharCode(...buf.slice(0, n)) });
+    return true;
+  }, a.koffi.pointer(a.enumProc));
+  try {
+    a.enumWindows(cb, 0);
+  } finally {
+    a.koffi.unregister(cb);
+  }
+  return out;
+}
 
 /** Estado de una ventana por su HWND. null si ya no existe (o no se puede saber). */
 export function windowState(hwnd: bigint): WindowState | null {

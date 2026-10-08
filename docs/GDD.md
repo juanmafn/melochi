@@ -134,7 +134,11 @@ Moods de ejemplo incluidos: **`neutral`** (obligatorio, fallback), **`feliz`** y
 - **Saltar una canción que puso ella** → sube Mosqueo. Cambiar a otra música mientras suena la suya → se mosquea un poco.
 - El panel de Estado muestra lo que suena, si lo ha puesto ella y su opinión.
 - El LLM podrá opinar sobre la canción que suena (fase 3).
-- **Baile al ritmo** (opcional, fase 4): detección de beat analizando el audio del sistema en local.
+- **Baile al ritmo:** escucha el sonido del PC (cualquier programa: Spotify, YouTube...) en una ventana oculta y saca el ritmo en local. Solo analiza en memoria cuánto cambia cada frecuencia; no graba ni guarda nada. No escucha en los modos seguros (pantalla completa, llamada, No molestar) ni si no estás delante.
+  - Detección: "novedad" del espectro (sobre todo bombo y bajo) → tempo por autocorrelación de los últimos 8 s (70–180 BPM, con preferencia por los tempos habituales para no irse al doble o la mitad) → fase alineando los golpes. Avisa de cada golpe predicho, así que sigue el ritmo aunque algún golpe no se oiga. Necesita unos 4 s de música para engancharse.
+  - **Baila sola a ratos** si suena música con ritmo y no está cabreada: cada 4–10 minutos, durante 20–40 s (`config/music.json` → `baile`). Sube un poco la Diversión.
+  - **Se le puede pedir** que baile en el chat (*"¡baila!"*) o en el menú (Jugar → ¡Baila!). Solo baila si no está cabreada y si suena algo; si no, lo dice.
+  - Mientras baila (también cuando suena un artista favorito) da un saltito en cada golpe y se da la vuelta cada 4. El saltito lo pone el juego, así que funciona con cualquier skin.
 
 ### 5.3 Travesuras musicales (solo en mood con `modo: "travesura"`)
 - Pausar la música.
@@ -267,7 +271,7 @@ Todos se lanzan desde el menú de clic derecho → **Jugar**. No están disponib
 - **Multi-monitor**: puede pasear entre pantallas cruzando los bordes donde los monitores están contiguos (según su disposición en Windows). También se la puede arrastrar de una pantalla a otra.
 - Tiene una **zona "casa"** (por defecto, una esquina sobre la barra de tareas del monitor principal; configurable, puede estar en cualquier monitor).
 - Sale a pasear de vez en cuando según su mood (`exploracion`): feliz → explora más, triste → se queda en casa.
-- Camina por la barra de tareas y (fase posterior) se sube a los bordes de las ventanas.
+- Camina por la barra de tareas y **trepa a las ventanas**: paseando (sin estar cabreada), a veces va hasta una ventana cercana, **trepa por el lateral** (animación `climb`), se sube de un saltito y pasea por encima de la barra de título un rato (20–60 s), y luego salta al suelo. Elige ventanas que no estén maximizadas, que tengan sitio por encima y cuyo borde de arriba no tape otra ventana. Si la mueves, la minimizas o la tapas con otra, se cae (y se queja). Lo hace más cuanto más exploradora sea su mood (`config/stats.json` → `trepar`). "¡A casa!" o darle un juguete la bajan.
 - Se puede arrastrar y lanzar con el ratón (tiene física sencilla: cae, rebota).
 - Botón/menú **"¡A casa!"** para mandarla de vuelta.
 
@@ -369,7 +373,7 @@ Se aceptan **ambos formatos**: carpeta de PNGs por animación o sprite sheet + J
 **Resolución de animaciones**: se busca primero `<mood>_<acción>` y, si no existe, `<acción>`. Así puedes empezar solo con las básicas e ir añadiendo variantes por mood.
 
 **Animaciones mínimas (MVP):** `idle`, `walk`, `drag` (cogida), `fall`, `eat`, `drink`, `happy` (reacción), `angry` (reacción), `talk`.
-**Opcionales:** `dance`, `sleep`, `hide_peek`, `petted`, `mischief`, `cheat` (trampa en piedra-papel-tijera), y variantes por mood.
+**Opcionales:** `dance`, `sleep`, `hide_peek`, `climb` (trepando, con la pared a su derecha; si falta, usa `walk`), `petted`, `mischief`, `cheat` (trampa en piedra-papel-tijera), y variantes por mood.
 
 ### 10.1 Skin provisional (`placeholder`)
 Mientras el usuario dibuja la suya, el juego incluye una **skin provisional generada por script**. Es una "gota" de colores con ojos, y su color y expresión cambian según la animación. Usa **exactamente el mismo formato** que una skin de usuario, con frames PNG y una sprite sheet, así que sirve para probar el formato y como plantilla para copiar. Los objetos también tienen iconos provisionales sencillos.
@@ -399,7 +403,7 @@ Mientras el usuario dibuja la suya, el juego incluye una **skin provisional gene
 | Spotify | Web API + OAuth PKCE con redirección a `127.0.0.1` |
 | IA local | API HTTP de Ollama (`localhost:11434`) |
 | Ventanas, pantalla completa, micrófono en uso | Llamadas Win32 (vía `koffi`) + registro de Windows para uso del micrófono |
-| Beat de la música | Captura loopback del audio del sistema + Web Audio |
+| Beat de la música | Captura loopback del audio del sistema (`getDisplayMedia` con `audio: 'loopback'` en una ventana oculta) + Web Audio `AnalyserNode` + detector propio (`src/shared/beat.ts`) |
 | Guardado | JSON en `%APPDATA%/Melochi` |
 
 ¿Por qué Electron y no Tauri/Godot? Electron es lo más maduro para overlays con clic pasante selectivo en Windows, y facilita mucho la UI de chat, el OAuth de Spotify y las llamadas HTTP a Ollama. Coste: ~100–150 MB de RAM, aceptable para este caso.

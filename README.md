@@ -66,6 +66,8 @@ Otros comandos:
 - **Juguetes**: usa la Pelota (lánzasela y te la trae) o el Puntero láser (persigue tu cursor) desde el inventario.
 - Al jugar con ella **suelta objetos**: haz clic en ellos para recogerlos y dáselos desde el inventario (clic o arrastrando hasta ella).
 - También hay un icono en la bandeja del sistema con el mismo menú.
+- **Baila al ritmo** de lo que suene en el PC (Spotify, YouTube...) de vez en cuando, o si se lo pides en el chat o en el menú (Jugar → ¡Baila!), siempre que no esté cabreada. Para sacar el ritmo escucha el sonido del PC, pero solo lo analiza en el momento: no graba nada. Se puede desactivar en `config/music.json` → `baile.activado`.
+- **Trepa a tus ventanas** de vez en cuando: sube por un lateral y pasea por encima. Si mueves la ventana, se cae.
 - **Si la descuidas, se cabrea** y hace travesuras (como mucho una cada 10 minutos, y solo si estás delante): pausarte o cambiarte la música, esconderse (haz clic en ella para encontrarla), sentarse encima de tu ventana (se cae si la mueves) o dejarte post-its pasivo-agresivos (clic para quitarlos). Cabreada, a veces huye cuando le acercas el cursor.
 
 ## Personalizar
@@ -75,19 +77,19 @@ En desarrollo, todo se lee directamente de las carpetas del proyecto y se recarg
 | Carpeta | Contenido |
 |---|---|
 | `skins/<nombre>/` | Gráficos y sonidos. Copia `skins/placeholder` como plantilla; `skin.json` explica el formato. |
-| `config/stats.json` | Velocidad a la que bajan las necesidades, efectos de cada interacción, mosqueo, afinidad, travesuras (tipos y tiempos), minijuegos y modos seguros. |
+| `config/stats.json` | Velocidad a la que bajan las necesidades, efectos de cada interacción, mosqueo, afinidad, trepar a las ventanas, travesuras (tipos y tiempos), minijuegos y modos seguros. |
 | `config/moods.json` | Estados de ánimo: condiciones, animaciones, comportamiento (y en la fase 2, playlists). |
 | `config/items.json` | Objetos y sus efectos. |
 | `config/loot.json` | Qué objetos suelta con cada actividad. |
 | `config/brain.json` | Chat con IA: memoria, cuánto escribe la IA en los bocadillos, efectos de hablar con ella. |
-| `config/music.json` | Sus artistas favoritos y odiados, búsquedas de su música de travesura, tiempos de las sugerencias y efectos en sus stats. |
+| `config/music.json` | Sus artistas favoritos y odiados, búsquedas de su música de travesura, tiempos de las sugerencias, efectos en sus stats y el baile al ritmo. |
 | `locales/es.json`, `locales/en.json` | Textos y frases de los bocadillos. |
 
 ### Formato de las skins
 
 Cada animación puede ser una **carpeta de PNG numerados** o una **sprite sheet** exportada desde Aseprite o TexturePacker (JSON en formato hash o array, sin rotación). Las variantes por mood se llaman `<mood>_<animación>` (por ejemplo `feliz_idle`); si no existen, se usa la genérica. La skin provisional incluye ejemplos de los tres casos.
 
-Animaciones que usa el juego: `idle`, `walk`, `drag`, `fall`, `eat`, `drink`, `happy`, `angry`, `talk`, `petted`, `dance`, `mischief`. Solo `idle` es obligatoria: el resto, si faltan, se sustituyen por la más parecida.
+Animaciones que usa el juego: `idle`, `walk`, `drag`, `fall`, `eat`, `drink`, `happy`, `angry`, `talk`, `petted`, `dance`, `mischief`, `hide_peek`, `climb` (trepando con la pared a su derecha). Solo `idle` es obligatoria: el resto, si faltan, se sustituyen por la más parecida.
 
 Los iconos de los objetos van en `skins/<nombre>/items/<id>.png`.
 
@@ -108,8 +110,9 @@ En `tools/` hay scripts que se conectan a esos puertos:
 | `tools/cdp.mjs` | Lista ventanas, evalúa código, hace capturas y muestra la consola del renderer (`main` = proceso principal en el puerto 9334). |
 | `tools/interact.mjs` | Simula toques, cosquillas, caricias, abrir paneles, dar objetos y recoger drops. |
 | `tools/realmouse.mjs` | Prueba con el ratón real de Windows: clic a través, arrastrar, lanzar, menú contextual y huir del cursor (`flee`). Mueve tu cursor. |
-| `tools/mischief.mjs` | Fuerza travesuras de escritorio: post-it, esconderse (en un borde o tras una ventana), sentarse en una ventana, una al azar; `angry`/`calm` la cabrean o la calman. |
-| `tools/window-test/` | Abre una ventana normal (y la mueve si se indica) para probar sentarse encima o esconderse detrás: `electron.exe tools/window-test 30 12`. |
+| `tools/mischief.mjs` | Fuerza travesuras de escritorio (post-it, esconderse en un borde o tras una ventana, sentarse en una ventana, una al azar), trepar a una ventana (`climb`) y bailar midiendo los saltitos al ritmo (`dance`); `angry`/`calm` la cabrean o la calman. |
+| `tools/window-test/` | Abre una ventana normal (y la mueve si se indica) para probar sentarse encima, esconderse detrás o trepar: `electron.exe tools/window-test 30 12`. |
+| `tools/beat-test/` | Suena un ritmo de prueba por los altavoces (bombo y charles) para probar el baile: `electron.exe tools/beat-test 120 95 20` (BPM, BPM, segundos de cada uno). |
 | `tools/exstyle.mjs` | Muestra si la ventana deja pasar el ratón (`WS_EX_TRANSPARENT`). |
 | `tools/music.mjs` | Prueba Spotify: sugerencias, saltar su canción, travesuras, gustos y el Vinilo misterioso. **Pone música de verdad.** |
 | `tools/chat.mjs` | Prueba el chat con IA: enviar mensajes, bocadillos, recuerdos y comparar modelos (con tiempos). |

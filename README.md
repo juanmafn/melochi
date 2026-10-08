@@ -2,7 +2,25 @@
 
 Mascota de escritorio tipo Tamagotchi para Windows. El diseño completo está en [docs/GDD.md](docs/GDD.md).
 
-**Estado:** fases 1 (mascota viva) y 2 (Spotify). El chat con IA y los minijuegos llegan en las siguientes fases.
+**Estado:** fases 1 (mascota viva), 2 (Spotify) y 3 (chat con IA local). Los minijuegos llegan en la fase 4.
+
+## IA local (chat)
+
+La mascota habla con un modelo de lenguaje local a través de [Ollama](https://ollama.com). Instálalo y descarga un modelo, por ejemplo:
+
+```bash
+ollama pull qwen3:8b
+```
+
+Modelos probados (con una GTX 1070 y driver reciente):
+
+| Modelo | Respuesta (GPU) | Notas |
+|---|---|---|
+| `qwen3:8b` (por defecto) | ~2 s | El más coherente y el que mejor usa lo que le cuentas. 5,2 GB. |
+| `gemma3:4b` | ~2 s | Más dramática y con más personalidad, pero olvida cosas. Por CPU, ~25 s. |
+| `qwen3:4b` | ~2 s | Correcto. Por CPU, ~15 s (la mejor opción sin GPU). |
+
+Necesita un driver de NVIDIA reciente: con uno antiguo, Ollama falla al cargar los modelos en la GPU. En el menú de la mascota, **Ajustes → IA** permite elegir el modelo, usar o no la tarjeta gráfica y borrar sus recuerdos. Su personalidad está en `skins/<skin>/personality.md`.
 
 ## Conectar Spotify
 
@@ -40,10 +58,11 @@ Otros comandos:
 
 ## Cómo se juega
 
-- **Clic** en la mascota: te saluda. **Varios clics rápidos**: cosquillas.
+- **Varios clics rápidos**: cosquillas.
 - **Pasa el cursor de lado a lado** por encima: caricias.
 - **Arrástrala** y suéltala con impulso para lanzarla (sin pasarte, que se marea).
-- **Clic derecho**: inventario, estado, "No molestar", mandarla a casa, ajustes.
+- **Clic**: te saluda y abre el chat.
+- **Clic derecho**: hablar, inventario, estado, "No molestar", mandarla a casa, ajustes.
 - Al jugar con ella **suelta objetos**: haz clic en ellos para recogerlos y dáselos desde el inventario (clic o arrastrando hasta ella).
 - También hay un icono en la bandeja del sistema con el mismo menú.
 
@@ -58,6 +77,7 @@ En desarrollo, todo se lee directamente de las carpetas del proyecto y se recarg
 | `config/moods.json` | Estados de ánimo: condiciones, animaciones, comportamiento (y en la fase 2, playlists). |
 | `config/items.json` | Objetos y sus efectos. |
 | `config/loot.json` | Qué objetos suelta con cada actividad. |
+| `config/brain.json` | Chat con IA: memoria, cuánto escribe la IA en los bocadillos, efectos de hablar con ella. |
 | `config/music.json` | Sus artistas favoritos y odiados, búsquedas de su música de travesura, tiempos de las sugerencias y efectos en sus stats. |
 | `locales/es.json`, `locales/en.json` | Textos y frases de los bocadillos. |
 
@@ -88,4 +108,5 @@ En `tools/` hay scripts que se conectan a esos puertos:
 | `tools/realmouse.mjs` | Prueba con el ratón real de Windows: clic a través, arrastrar, lanzar y menú contextual. Mueve tu cursor. |
 | `tools/exstyle.mjs` | Muestra si la ventana deja pasar el ratón (`WS_EX_TRANSPARENT`). |
 | `tools/music.mjs` | Prueba Spotify: sugerencias, saltar su canción, travesuras, gustos y el Vinilo misterioso. **Pone música de verdad.** |
+| `tools/chat.mjs` | Prueba el chat con IA: enviar mensajes, bocadillos, recuerdos y comparar modelos (con tiempos). |
 | `tools/watch.mjs` | Vigila durante N segundos los cambios de mood, bocadillos y canción (opcionalmente tras ejecutar algo en main). |

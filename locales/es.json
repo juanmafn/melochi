@@ -1,5 +1,15 @@
 {
   "menu": {
+    "talk": "Hablar",
+    "ai": "IA",
+    "aiEnabled": "Activar IA",
+    "aiModel": "Modelo",
+    "aiGpu": "Usar la tarjeta gráfica",
+    "aiNoModels": "(Ollama no disponible)",
+    "aiForget": "Olvidar recuerdos…",
+    "aiForgetConfirm": "¿Seguro que quieres que {name} olvide todo lo que recuerda de ti y la conversación?",
+    "aiForgetYes": "Olvidar",
+    "cancel": "Cancelar",
     "inventory": "Inventario",
     "stats": "Estado",
     "play": "Jugar (próximamente)",
@@ -53,6 +63,26 @@
     "spotifyLabel": "Spotify",
     "spotifySoon": "Puedes conectarlo cuando quieras desde el menú: Ajustes → Música…",
     "start": "¡Empezar!"
+  },
+  "chat": {
+    "lang": "es",
+    "placeholder": "Escribe a {name}…",
+    "typing": "{name} está escribiendo",
+    "close": "Cerrar",
+    "empty": "Di hola a {name} 👋",
+    "status_offline": "IA no disponible (¿está abierto Ollama?)",
+    "status_nomodel": "Falta el modelo {model} en Ollama",
+    "status_disabled": "IA desactivada",
+    "offline": "Mmm… hoy no me salen las palabras. (La IA no está disponible: abre Ollama.)",
+    "offlineDisabled": "(La IA está desactivada en Ajustes → IA.)",
+    "offlineNoModel": "Mmm… hoy no me salen las palabras. (Falta el modelo de IA: elige otro en Ajustes → IA → Modelo, o descárgalo con «ollama pull {model}».)",
+    "error": "(Algo ha fallado al pensar la respuesta.)",
+    "noSpotify": "(No puedo poner música: Spotify no está conectado.)",
+    "noDevice": "(No puedo poner música: abre Spotify en el PC.)",
+    "noMusic": "(No he encontrado esa música.)",
+    "musicError": "(Spotify no me ha dejado.)",
+    "unknownMood": "(No sé qué música es esa.)",
+    "nothingPlaying": "(Ahora mismo no está sonando nada.)"
   },
   "music": {
     "title": "Música",

@@ -18,6 +18,7 @@ const api = {
   useItem: (slotIndex: number) => ipcRenderer.send(toMain.useItem, slotIndex),
   collect: (groundId: string) => ipcRenderer.send(toMain.collect, groundId),
   choose: (promptId: string, choiceId: string) => ipcRenderer.send(toMain.choose, promptId, choiceId),
+  openChat: () => ipcRenderer.send(toMain.openChat),
   on: (channel: (typeof toOverlay)[keyof typeof toOverlay], listener: Listener) => {
     ipcRenderer.on(channel, (_e, payload) => listener(payload));
   },

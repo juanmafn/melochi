@@ -6,6 +6,17 @@ import type { Settings } from './save';
 export interface MenuActions {
   openPanel(panel: PanelId): void;
   openMusic(): void;
+  openChat(): void;
+  ai: {
+    enabled(): boolean;
+    setEnabled(on: boolean): void;
+    models(): string[];
+    model(): string;
+    setModel(model: string): void;
+    gpu(): boolean;
+    setGpu(on: boolean): void;
+    forget(): void;
+  };
   setDnd(minutes: number): void;
   goHome(): void;
   setHomeHere(): void;
@@ -28,7 +39,14 @@ export function buildPetMenu(i18n: I18n, settings: Settings, a: MenuActions): Me
   const dndActive = settings.dndUntil > Date.now();
   const until = new Date(settings.dndUntil).toLocaleTimeString(i18n.lang, { hour: '2-digit', minute: '2-digit' });
 
+  const models = a.ai.models();
+  const modelItems: MenuItemConstructorOptions[] = models.length
+    ? models.map((m) => ({ label: m, type: 'radio', checked: a.ai.model() === m, click: () => a.ai.setModel(m) }))
+    : [{ label: t('aiNoModels'), enabled: false }];
+
   const template: MenuItemConstructorOptions[] = [
+    { label: t('talk'), click: () => a.openChat() },
+    { type: 'separator' },
     { label: t('inventory'), click: () => a.openPanel('inventory') },
     { label: t('stats'), click: () => a.openPanel('stats') },
     { label: t('play'), enabled: false },
@@ -50,6 +68,16 @@ export function buildPetMenu(i18n: I18n, settings: Settings, a: MenuActions): Me
       label: t('settings'),
       submenu: [
         { label: t('music'), click: () => a.openMusic() },
+        {
+          label: t('ai'),
+          submenu: [
+            { label: t('aiEnabled'), type: 'checkbox', checked: a.ai.enabled(), click: (item) => a.ai.setEnabled(item.checked) },
+            { label: t('aiModel'), submenu: modelItems },
+            { label: t('aiGpu'), type: 'checkbox', checked: a.ai.gpu(), click: (item) => a.ai.setGpu(item.checked) },
+            { type: 'separator' },
+            { label: t('aiForget'), click: () => a.ai.forget() },
+          ],
+        },
         { type: 'separator' },
         {
           label: t('language'),

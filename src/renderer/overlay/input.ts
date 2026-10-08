@@ -119,7 +119,7 @@ export class Input {
     this.dragging = false;
   }
 
-  /** Un clic suelto = "toque"; varios clics rápidos = cosquillas. */
+  /** Un clic suelto = "toque" (y abre el chat); varios clics rápidos = cosquillas. */
   private onClick(): void {
     const now = performance.now();
     this.clicks = this.clicks.filter((t) => now - t < TICKLE_WINDOW_MS);
@@ -134,7 +134,11 @@ export class Input {
     }
     this.pokeTimer = window.setTimeout(() => {
       this.pokeTimer = null;
-      if (this.clicks.length === 1) this.api.interact('poke');
+      // Un clic: te saluda y abre el chat.
+      if (this.clicks.length === 1) {
+        this.api.interact('poke');
+        this.api.openChat();
+      }
       this.clicks = [];
     }, POKE_DELAY_MS);
   }

@@ -1,7 +1,12 @@
-import { app, dialog, ipcMain, nativeImage, protocol, shell, Tray, BrowserWindow } from 'electron';
+import { app, dialog, ipcMain, nativeImage, powerMonitor, protocol, shell, Tray, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 import { toMain, toOverlay } from '../shared/ipc';
-import type { InteractionType, Lang, PanelId } from '../shared/types';
+import { readFileSync } from 'node:fs';
+import type { ChatActionType, InteractionType, Lang, PanelId } from '../shared/types';
+import { Brain } from './brain/brain';
+import { Memory } from './brain/memory';
+import { OllamaClient } from './brain/ollama';
+import { ChatWindow } from './chat-window';
 import { loadConfig, type GameConfig } from './config';
 import { Game } from './game';
 import { I18n } from './i18n';
@@ -15,7 +20,7 @@ import { runSetup } from './setup-window';
 import { SKIN_SCHEME, SkinManager } from './skins';
 import { SpotifyApi } from './spotify/api';
 import { SpotifyAuth } from './spotify/auth';
-import { MusicDirector } from './spotify/director';
+import { MusicDirector, type PlayResult } from './spotify/director';
 
 app.setName('Melochi');
 app.setAppUserModelId('Melochi');
@@ -95,6 +100,7 @@ async function start(): Promise<void> {
     setImmediate(() => {
       statePending = false;
       overlays.broadcast(toOverlay.state, game.view(home()));
+      chatWindow.refresh();
     });
   };
 
@@ -110,6 +116,7 @@ async function start(): Promise<void> {
       moodChanged: (mood) => director.onMoodChanged(mood),
       welcomeMischief: () => director.mischief(true),
       special: (name) => director.special(name),
+      chatter: (topic, fallback) => brain.chatter(topic, fallback),
     },
     firstRun,
   );
@@ -118,7 +125,9 @@ async function start(): Promise<void> {
 
   const auth = new SpotifyAuth(join(paths.userData, 'spotify-token.bin'), () => settings.spotify.clientId);
   const api = new SpotifyApi(auth);
-  const director: MusicDirector = new MusicDirector(game, api, auth, i18n, settings);
+  const idleSeconds = () => powerMonitor.getSystemIdleTime();
+  const userActive = () => idleSeconds() < game.config.music.soloSiActivoMinutos * 60;
+  const director: MusicDirector = new MusicDirector(game, api, auth, i18n, settings, idleSeconds);
   const musicWindow = new MusicWindow({
     paths,
     i18n,
@@ -130,9 +139,108 @@ async function start(): Promise<void> {
     saveSettings: () => writeSettings(paths.settings, settings),
   });
 
+  // ---------- Cerebro (IA local) y chat ----------
+
+  const ollama = new OllamaClient(() => settings.ollama);
+  const musicMoods = () =>
+    game.config.moods.moods.filter((m) => m.musica?.modo === 'sugerir').map((m) => ({ id: m.id, name: i18n.loc(m.nombre, m.id) }));
+  const personality = () => {
+    try {
+      return readFileSync(join(skins.dir, 'personality.md'), 'utf8');
+    } catch {
+      return 'Eres {name}, una mascota virtual cariñosa y juguetona.';
+    }
+  };
+
+  /** Acciones que puede hacer cuando se lo pides en el chat. Devuelve un aviso si no ha podido. */
+  const runChatAction = async (action: ChatActionType, value: string): Promise<string | null> => {
+    const t = (k: string) => i18n.t('chat', k);
+    const note = (r: PlayResult) => (r === 'ok' ? null : r === 'nodevice' ? t('noDevice') : r === 'nomusic' ? t('noMusic') : t('musicError'));
+    const isMusic = ['play_mood', 'play_search', 'pause', 'resume', 'next'].includes(action);
+    if (isMusic && !auth.connected) return t('noSpotify');
+    switch (action) {
+      case 'play_mood': {
+        const v = value.toLowerCase();
+        const mood = musicMoods().find((m) => m.id === v || m.name.toLowerCase() === v);
+        if (mood) return note(await director.playMood(mood.id));
+        return value ? note(await director.playSearch(value)) : t('unknownMood');
+      }
+      case 'play_search':
+        return note(await director.playSearch(value));
+      case 'pause':
+      case 'next':
+        // Lo que sabe de Spotify puede tener unos segundos: se pregunta antes de decir que no suena nada.
+        await director.refreshNow();
+        if (!director.state?.track) return t('nothingPlaying');
+        return note(await director.control(action));
+      case 'resume':
+        return note(await director.control(action));
+      case 'open_inventory':
+        actions.openPanel('inventory');
+        return null;
+      case 'open_stats':
+        actions.openPanel('stats');
+        return null;
+      case 'go_home':
+        overlays.goHome();
+        return null;
+      case 'dnd': {
+        const n = parseInt(value, 10);
+        game.setDnd([15, 30, 60].includes(n) ? n : 30);
+        return null;
+      }
+      default:
+        return null;
+    }
+  };
+
+  const brain: Brain = new Brain(ollama, new Memory(join(paths.userData, 'memory.json')), {
+    lang: () => i18n.lang,
+    petName: () => game.save.pet.name,
+    personality,
+    view: () => game.view(home()),
+    mood: () => game.mood,
+    musicMoods,
+    spotifyConnected: () => auth.connected,
+    config: () => game.config.brain,
+    dndActive: () => game.dndActive,
+    userActive,
+    act: runChatAction,
+    react: (r) => overlays.sendToOwner(toOverlay.reaction, r),
+    adjust: (d) => game.adjust(d),
+    changed: () => chatWindow.refresh(),
+    text: (k) => i18n.t('chat', k, { model: settings.ollama.model }),
+  });
+  director.onNewTrack = (hasOpinion) => {
+    if (!hasOpinion) brain.commentSong();
+  };
+
+  const chatWindow: ChatWindow = new ChatWindow({
+    paths,
+    brain,
+    state: () => ({
+      petName: game.save.pet.name,
+      moodName: i18n.loc(game.mood.nombre, game.mood.id),
+      model: settings.ollama.model,
+      strings: i18n.section('chat'),
+    }),
+    petSpot: () => overlays.petSpot(),
+    display: (id) => overlays.display(id),
+  });
+
+  let aiModels: string[] = [];
+  const refreshAi = async () => {
+    await brain.refreshStatus();
+    aiModels = await ollama.models().catch(() => []);
+  };
+  void refreshAi();
+  setInterval(() => void refreshAi(), 30_000);
+
   overlays.start(save.pose);
   // Acceso para depurar con --inspect (no lo usa el juego).
-  if (!app.isPackaged) Object.assign(globalThis, { __melochi: { game, overlays, skins, settings, director, api, musicWindow } });
+  if (!app.isPackaged) {
+    Object.assign(globalThis, { __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama } });
+  }
 
   const persist = () => {
     const spot = overlays.petSpot();
@@ -146,6 +254,41 @@ async function start(): Promise<void> {
   const actions: MenuActions = {
     openPanel: (panel: PanelId) => overlays.sendToOwner(toOverlay.panel, { panel, open: true }),
     openMusic: () => musicWindow.open(),
+    openChat: () => chatWindow.open(),
+    ai: {
+      enabled: () => settings.ollama.enabled,
+      setEnabled: (on) => {
+        settings.ollama.enabled = on;
+        writeSettings(paths.settings, settings);
+        void refreshAi();
+      },
+      models: () => aiModels,
+      model: () => settings.ollama.model,
+      setModel: (m) => {
+        settings.ollama.model = m;
+        writeSettings(paths.settings, settings);
+        void refreshAi();
+        chatWindow.refresh();
+      },
+      gpu: () => settings.ollama.useGpu,
+      setGpu: (on) => {
+        settings.ollama.useGpu = on;
+        writeSettings(paths.settings, settings);
+      },
+      forget: async () => {
+        const { response } = await dialog.showMessageBox({
+          type: 'question',
+          buttons: [i18n.t('menu', 'aiForgetYes'), i18n.t('menu', 'cancel')],
+          defaultId: 1,
+          cancelId: 1,
+          message: i18n.t('menu', 'aiForgetConfirm', { name: game.save.pet.name }),
+        });
+        if (response === 0) {
+          brain.memory.clear();
+          chatWindow.refresh();
+        }
+      },
+    },
     setDnd: (min) => game.setDnd(min),
     goHome: () => overlays.goHome(),
     setHomeHere: () => {
@@ -195,6 +338,7 @@ async function start(): Promise<void> {
   });
   ipcMain.on(toMain.collect, (_e, id: string) => game.collect(String(id)));
   ipcMain.on(toMain.choose, (_e, promptId: string, choice: string) => void director.answer(String(promptId), String(choice)));
+  ipcMain.on(toMain.openChat, () => chatWindow.open());
   ipcMain.on(toMain.contextMenu, (e) => {
     const win = BrowserWindow.fromWebContents(e.sender);
     if (!win) return;
@@ -219,6 +363,7 @@ async function start(): Promise<void> {
     const now = Date.now();
     game.tick(now - last);
     director.tick();
+    brain.tick();
     last = now;
   }, 1000);
   setInterval(persist, AUTOSAVE_MS);

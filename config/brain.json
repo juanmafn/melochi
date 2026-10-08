@@ -1,0 +1,17 @@
+{
+  // Mensajes de la conversación que recuerda "en caliente" (los más recientes).
+  "historialMensajes": 12,
+  // Recuerdos a largo plazo que guarda sobre ti (frases cortas).
+  "maxRecuerdos": 15,
+  // Actualiza sus recuerdos cada X mensajes tuyos, o tras unos minutos sin hablar.
+  "resumirCadaMensajes": 8,
+  "resumirTrasInactividadMinutos": 3,
+  "temperatura": 0.8,
+  "maxTokensChat": 220,
+  // De los comentarios espontáneos, cuántos escribe la IA (el resto, frases fijas).
+  "probabilidadBocadilloIA": 0.6,
+  // Probabilidad de que comente una canción nueva que empieza a sonar.
+  "probabilidadComentarCancion": 0.25,
+  // Hablar con ella le sube el cariño (cada vez un poco menos si no paras).
+  "efectosPorMensaje": { "carino": 1.5, "afinidad": 0.05 }
+}

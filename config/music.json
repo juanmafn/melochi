@@ -6,6 +6,9 @@
   // Cada cuántos segundos mira qué está sonando en Spotify.
   "consultaSegundos": 5,
 
+  // Solo sugiere música y hace travesuras si has usado el ratón o el teclado en estos minutos.
+  "soloSiActivoMinutos": 5,
+
   "sugerencias": {
     // Tiempo mínimo entre dos sugerencias de música.
     "cooldownMinutos": 20,

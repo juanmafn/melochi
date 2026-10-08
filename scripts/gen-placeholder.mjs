@@ -8,7 +8,8 @@ import { PNG } from 'pngjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'skins', 'placeholder');
-rmSync(out, { recursive: true, force: true });
+// Solo se borra lo que genera este script (personality.md se edita a mano y se conserva).
+for (const p of ['anims', 'items', 'sounds', 'skin.json', 'icon.png']) rmSync(join(out, p), { recursive: true, force: true });
 
 // ====================================================================
 // Rasterizado con funciones de distancia (SDF) y antialiasing

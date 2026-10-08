@@ -61,7 +61,14 @@ export class MusicDirector {
     private auth: SpotifyAuth,
     private i18n: I18n,
     private settings: Settings,
+    /** Segundos desde la última vez que usaste el ratón o el teclado. */
+    private idleSeconds: () => number,
   ) {}
+
+  /** ¿Estás delante del ordenador? (has usado el ratón o el teclado hace poco) */
+  private get userActive(): boolean {
+    return this.idleSeconds() < this.cfg.soloSiActivoMinutos * 60;
+  }
 
   get connected(): boolean {
     return this.auth.connected;
@@ -85,6 +92,8 @@ export class MusicDirector {
     if (now >= this.nextPollAt) void this.poll();
     if (this.prompt && now > this.prompt.expiresAt) this.prompt = null;
 
+    // Si no estás delante, ni sugiere ni hace travesuras.
+    if (!this.userActive) return;
     const mood = this.game.mood;
     const silence = this.cfg.sugerencias.silencioMinutos * MINUTE;
     if (mood.musica?.modo === 'sugerir' && !this.state?.isPlaying && now - this.silenceSince > silence) void this.suggest();
@@ -108,6 +117,12 @@ export class MusicDirector {
       this.polling = false;
       this.publish();
     }
+  }
+
+  /** Consulta ya lo que suena (esperando a que termine una consulta en curso si la hay). */
+  async refreshNow(): Promise<void> {
+    for (let i = 0; this.polling && i < 50; i++) await new Promise((r) => setTimeout(r, 100));
+    await this.poll(true);
   }
 
   private isHers(track: SpotifyTrack | null | undefined, contextUri: string | null | undefined): boolean {
@@ -146,8 +161,14 @@ export class MusicDirector {
       }
     }
     if (this.her && !this.isHers(curTrack, cur.contextUri) && now > this.ownActionUntil) this.her = null;
-    if (cur.isPlaying) this.reactToTaste(curTrack);
+    if (cur.isPlaying) {
+      this.reactToTaste(curTrack);
+      this.onNewTrack?.(!!this.opinion(curTrack));
+    }
   }
+
+  /** Aviso de canción nueva (para que la IA la comente). `hasOpinion`: ya ha reaccionado por sus gustos. */
+  onNewTrack: ((hasOpinion: boolean) => void) | null = null;
 
   /** Reacciona una vez a cada canción de un artista que le gusta o que odia. */
   private reactToTaste(track: SpotifyTrack): void {
@@ -200,7 +221,7 @@ export class MusicDirector {
   async suggest(): Promise<void> {
     const now = Date.now();
     const mood = this.game.mood;
-    if (!this.connected || this.prompt || this.busy || this.game.dndActive) return;
+    if (!this.connected || this.prompt || this.busy || this.game.dndActive || !this.userActive) return;
     if (now - this.lastSuggestAt < this.cfg.sugerencias.cooldownMinutos * MINUTE) return;
     if (mood.musica?.modo !== 'sugerir' || !this.hasMusicFor(mood)) return;
     // Ya está sonando lo que ella puso para este mood.
@@ -272,6 +293,35 @@ export class MusicDirector {
    * Dispositivo donde poner música: el que ya está en uso o, si no hay, un ordenador.
    * Nunca enciende por su cuenta altavoces u otros dispositivos (podrían estar en otra habitación).
    */
+  /** Pone canciones de una búsqueda concreta (lo que le pides en el chat: un artista, un estilo...). */
+  async playSearch(query: string): Promise<PlayResult> {
+    const q = query.trim();
+    if (!q || !this.connected) return 'nomusic';
+    const tracks = await this.api.searchTracks(q, 0).catch(() => []);
+    if (!tracks.length) return 'nomusic';
+    return this.startHer({ uris: shuffle(tracks.map((t) => t.uri)) }, 'sugerencia', this.game.mood.id);
+  }
+
+  /** Controles básicos pedidos en el chat. No cuentan como "saltar su canción". */
+  async control(kind: 'pause' | 'resume' | 'next'): Promise<PlayResult> {
+    if (!this.connected) return 'error';
+    this.ownActionUntil = Date.now() + OWN_ACTION_MS;
+    try {
+      if (kind === 'pause') await this.api.pause();
+      else if (kind === 'next') await this.api.next();
+      else {
+        const device = await this.ensureDevice();
+        if (!device) return 'nodevice';
+        await this.api.play({ deviceId: device });
+      }
+    } catch (err) {
+      console.error('[música] Control fallido:', String(err));
+      return err instanceof SpotifyError && err.reason === 'NO_ACTIVE_DEVICE' ? 'nodevice' : 'error';
+    }
+    setTimeout(() => void this.poll(true), 1500);
+    return 'ok';
+  }
+
   private async ensureDevice(): Promise<string | null> {
     if (this.state?.deviceId) return this.state.deviceId;
     const devices = await this.api.devices().catch(() => []);
@@ -314,7 +364,7 @@ export class MusicDirector {
 
   /** Travesura musical. `welcome` = la de bienvenida, que no espera a que pase el tiempo entre travesuras. */
   async mischief(welcome = false): Promise<boolean> {
-    if (this.busy || !this.connected) return false;
+    if (this.busy || !this.connected || !this.userActive) return false;
     if (!welcome && !this.game.canMischief()) return false;
     this.busy = true;
     try {

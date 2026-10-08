@@ -35,6 +35,16 @@ export interface Settings {
   muted: boolean;
   dndUntil: number;
   spotify: SpotifySettings;
+  ollama: OllamaSettings;
+}
+
+export interface OllamaSettings {
+  enabled: boolean;
+  host: string;
+  /** Modelo de Ollama (p. ej. "qwen3:4b"). */
+  model: string;
+  /** false = solo CPU (num_gpu: 0), para no ocupar la tarjeta gráfica. Por defecto, GPU (si Ollama la detecta). */
+  useGpu: boolean;
 }
 
 export interface SpotifySettings {
@@ -62,11 +72,17 @@ export function loadSettings(path: string, defaultLang: Lang): Settings {
     muted: false,
     dndUntil: 0,
     spotify: { playlists: {} },
+    ollama: { enabled: true, host: 'http://127.0.0.1:11434', model: 'qwen3:8b', useGpu: true },
   };
   if (!existsSync(path)) return defaults;
   try {
     const loaded = readJson<Partial<Settings>>(path);
-    return { ...defaults, ...loaded, spotify: { ...defaults.spotify, ...loaded.spotify } };
+    return {
+      ...defaults,
+      ...loaded,
+      spotify: { ...defaults.spotify, ...loaded.spotify },
+      ollama: { ...defaults.ollama, ...loaded.ollama },
+    };
   } catch {
     return defaults;
   }

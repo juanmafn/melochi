@@ -43,6 +43,8 @@ export interface GameHooks {
   welcomeMischief?(): Promise<boolean>;
   /** Efecto especial de un objeto. Devuelve true si se encarga él del bocadillo. */
   special?(name: string): boolean;
+  /** Comentario espontáneo con IA. Devuelve true si se encarga él (y de usar `fallback` si falla). */
+  chatter?(topic: string, fallback: Reaction): boolean;
 }
 
 const MINUTE = 60_000;
@@ -226,6 +228,8 @@ export class Game {
   private updateWelcome(now: number): void {
     // Si está en "No molestar", la bienvenida espera a que termine.
     if (!this.welcome || now < this.welcomeAt || this.dndActive) return;
+    // Si se le ha pasado el enfado antes de saludar (la has cuidado), ya no hay travesura.
+    if (this.welcome === 'angry' && !this.isGrumpy) this.welcome = 'back';
     const name = this.save.pet.name;
     if (this.welcome === 'first') {
       this.react({ anim: 'happy', sound: 'saludo', bubble: this.i18n.bubble('welcomeFirst', { name }) }, true);
@@ -257,15 +261,20 @@ export class Game {
     for (const [stat, key] of needs) {
       if (this.save.stats[stat] < 30 && now - (this.lastNeedBubble[key] ?? 0) > NEED_BUBBLE_COOLDOWN) {
         this.lastNeedBubble[key] = now;
-        this.react({ anim: 'talk', bubble: this.i18n.bubble(key) }, true);
+        this.chatterOr(stat, { anim: 'talk', bubble: this.i18n.bubble(key) });
         return;
       }
     }
 
     const idleKey = `idle_${this.mood.id}`;
     if (Math.random() < talk && this.i18n.hasBubble(idleKey)) {
-      this.react({ anim: 'talk', bubble: this.i18n.bubble(idleKey) }, true);
+      this.chatterOr('idle', { anim: 'talk', bubble: this.i18n.bubble(idleKey) });
     }
+  }
+
+  /** Comentario espontáneo: lo escribe la IA si puede; si no, la frase fija. */
+  private chatterOr(topic: string, fallback: Reaction): void {
+    if (!this.hooks.chatter?.(topic, fallback)) this.react(fallback, true);
   }
 
   /** Envía una reacción. Los bocadillos de interacciones repetidas se espacian para no saturar. */

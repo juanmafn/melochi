@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { LANGS, type Lang, type Localized } from '../shared/types';
 import { readJson } from './jsonfile';
 
-type Section = 'menu' | 'ui' | 'setup' | 'music';
+type Section = 'menu' | 'ui' | 'setup' | 'music' | 'chat';
 
 type LocaleData = Record<Section, Record<string, string>> & {
   bubbles: Record<string, string[]>;

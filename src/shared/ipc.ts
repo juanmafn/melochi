@@ -14,6 +14,15 @@ export const toMain = {
   useItem: 'inventory:use',
   collect: 'ground:collect',
   choose: 'bubble:choose',
+  openChat: 'chat:open',
+} as const;
+
+export const chatChannels = {
+  getState: 'chat:get-state',
+  send: 'chat:send',
+  close: 'chat:close',
+  /** main → ventana de chat */
+  state: 'chat:state',
 } as const;
 
 export const toOverlay = {

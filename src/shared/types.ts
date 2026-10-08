@@ -169,6 +169,11 @@ export interface MusicConfig {
   artistasOdiados: string[];
   /** Segundos entre consultas a Spotify de lo que está sonando. */
   consultaSegundos: number;
+  /**
+   * Solo sugiere música y hace travesuras musicales si has usado el ratón o el teclado en estos minutos
+   * (si no estás delante, no tiene gracia y solo molesta).
+   */
+  soloSiActivoMinutos: number;
   sugerencias: {
     cooldownMinutos: number;
     /** Si no suena nada durante estos minutos, sugiere música. */
@@ -310,6 +315,58 @@ export interface OwnMessage {
 }
 
 export type PanelId = 'inventory' | 'stats';
+
+// ---------- Cerebro (IA local con Ollama) ----------
+
+export interface BrainConfig {
+  /** Mensajes de la conversación actual que se envían al modelo. */
+  historialMensajes: number;
+  /** Máximo de recuerdos que guarda sobre ti. */
+  maxRecuerdos: number;
+  /** Cada cuántos mensajes tuyos actualiza sus recuerdos. */
+  resumirCadaMensajes: number;
+  /** Minutos sin hablar tras los que actualiza sus recuerdos. */
+  resumirTrasInactividadMinutos: number;
+  temperatura: number;
+  /** Tokens máximos de una respuesta del chat. */
+  maxTokensChat: number;
+  /** Probabilidad de que un comentario espontáneo lo escriba la IA (si no, frase fija). */
+  probabilidadBocadilloIA: number;
+  /** Probabilidad de que comente una canción nueva. */
+  probabilidadComentarCancion: number;
+  /** Cariño que da cada mensaje (con rendimiento decreciente). */
+  efectosPorMensaje: StatDelta;
+}
+
+export type BrainStatus = 'online' | 'offline' | 'nomodel' | 'disabled';
+
+export type ChatActionType =
+  | 'none'
+  | 'play_mood'
+  | 'play_search'
+  | 'pause'
+  | 'resume'
+  | 'next'
+  | 'open_inventory'
+  | 'open_stats'
+  | 'go_home'
+  | 'dnd';
+
+export interface ChatMessage {
+  role: 'user' | 'pet' | 'system';
+  text: string;
+  at: number;
+}
+
+export interface ChatWindowState {
+  petName: string;
+  moodName: string;
+  status: BrainStatus;
+  model: string;
+  busy: boolean;
+  messages: ChatMessage[];
+  strings: Record<string, string>;
+}
 
 // ---------- Ventana de Música ----------
 

@@ -142,6 +142,7 @@ Moods de ejemplo incluidos: **`neutral`** (obligatorio, fallback), **`feliz`** y
 - Secuestrar la música: pone canciones spooky que **busca ella sola** (búsquedas editables en `config/music.json`; no crea ni modifica nada en tu cuenta).
 - Llenarte la cola con canciones spooky.
 - Pausar, saltar y la cola solo ocurren si estás escuchando algo; si no suena nada, lo que hace es poner su música.
+- **Solo si estás delante:** las travesuras y las sugerencias de música solo ocurren si has usado el ratón o el teclado en los últimos 5 minutos (`soloSiActivoMinutos` en `config/music.json`). Si te vas, se cabrea igual, pero te espera. Tampoco gasta la IA en comentarios espontáneos mientras no estás.
 - Animación `mischief` (risa de diablillo).
 
 Reglas:
@@ -289,21 +290,26 @@ En modo seguro no hay bocadillos, ni sonidos, ni travesuras, ni cambios de músi
 - **Menú con clic derecho**: Inventario · Jugar (juguetes/minijuegos) · No molestar · ¡A casa! · Ajustes · Salir.
 
 ### 8.1 Chat con IA local (Ollama)
-- Modelo en local, **configurable por perfil**:
-  - **Producción** (RTX 4060 Ti, 8 GB VRAM): un modelo de ~7–8B cuantizado a Q4 (~5 GB), por ejemplo de la familia Qwen o Llama. Se elige el definitivo probando.
-  - **Desarrollo** (GTX 1070 ocupada): **solo CPU**, forzado con la opción de Ollama `num_gpu: 0`. Modelo pequeño (~1,5–3B) para que responda rápido.
-  - Se configura en `settings.json` (`ollama.model`, `ollama.useGpu`).
-- El *prompt* del sistema se construye con: **personalidad base** + **mood actual y su tono** + **stats** + **afinidad** + **memoria** + **canción que suena**.
-- La mascota puede ejecutar **acciones** desde el chat (poner música de un mood, sugerir, jugar a un minijuego) mediante respuestas JSON estructuradas que el juego interpreta. (Los modelos pequeños son poco fiables con *tool calling*, por eso se valida todo.)
-- **Sin Ollama** disponible → frases predefinidas por mood (el juego sigue funcionando).
+- Modelo en local: **`qwen3:8b` por GPU** (~2 s por respuesta en una GTX 1070, cabe en 8 GB de VRAM). Elegido tras comparar qwen3:1.7b/4b/8b, llama3.2:3b y gemma3:4b con la misma conversación: es el más coherente y el que mejor recuerda lo que le cuentas. `gemma3:4b` tiene más personalidad pero olvida cosas; sin GPU, `qwen3:4b` (~15 s por CPU).
+  - Se configura en Ajustes → IA o en `settings.json` (`ollama.model`, `ollama.useGpu`). Con la GPU desactivada usa `num_gpu: 0` (solo CPU).
+  - Los modelos pequeños se inventan acciones que nadie ha pedido (p. ej. poner música al decir "hola"): un **filtro de intención** solo deja pasar una acción si el mensaje del usuario la pide con palabras reconocibles.
+- El chat es una **ventanita aparte junto a la mascota** (la overlay no puede recibir teclado). Se abre con **un clic** en la mascota o con «Hablar» en el menú.
+- El *prompt* del sistema se construye con: **personalidad base** + normas + **recuerdos**. Es la parte fija, para que Ollama la reaproveche en caché. Delante de cada mensaje va una línea de **estado** traducida a palabras: mood y su tono, cómo están sus necesidades, la relación (afinidad), la hora y la canción que suena.
+- La respuesta es un **JSON estructurado** (Ollama *structured outputs*): `reply`, `action`, `value` y `emotion` (que elige la animación). Todo se valida.
+- **Acciones desde el chat:** poner música de un mood o algo concreto («pon algo de Rihanna»), pausar, reanudar o pasar canción, abrir inventario o estado, ir a casa y «No molestar». Si está cabreada puede negarse.
+- Hablar con ella sube un poco el **Cariño** (cada vez menos si no paras).
+- **Bocadillos mixtos:** las reacciones rápidas (caricias, comer, travesuras...) son frases fijas para que sean instantáneas. Los comentarios espontáneos (necesidades, cómo se siente, la hora, recuerdos) los escribe la IA el 60 % de las veces, y a veces comenta la canción que empieza a sonar.
+- **Sin Ollama** disponible → frases predefinidas y el chat avisa de que la IA no está disponible (el juego sigue funcionando).
+- Ajustes → IA: activar o desactivar, elegir modelo (de los instalados), usar o no la GPU y olvidar recuerdos.
 
 ### 8.2 Personalidad
-- `skin/personality.md`: carácter base que escribe el usuario (sarcástica, tierna, dramática…).
-- La **Afinidad** la matiza: alta → más cariñosa y paciente; baja → más rencorosa y susceptible.
+- `skins/<skin>/personality.md`: carácter base, editable (la skin provisional trae una **pícara y dramática**).
+- La **Afinidad** la matiza: alta → más cariñosa; baja → más rencorosa.
 
 ### 8.3 Memoria
-- Al cerrar sesión (y periódicamente), el LLM **resume lo importante** de las conversaciones en `save/memory.json` (tu nombre, tus gustos, si la dejaste plantada, bromas internas…).
-- Tamaño limitado; se van consolidando los recuerdos más viejos.
+- `%APPDATA%/Melochi/memory.json`: los últimos mensajes del chat y una lista de **recuerdos** (frases cortas: tu nombre, tus gustos, promesas, bromas, cómo la tratas...).
+- Cada 8 mensajes tuyos, o tras 3 minutos sin hablar, el LLM **actualiza los recuerdos** con lo nuevo (máx. 15). Si cierras antes, se resume en la siguiente sesión.
+- Ajustes en `config/brain.json`.
 
 ---
 

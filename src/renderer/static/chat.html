@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+    <title>Melochi</title>
+    <link rel="stylesheet" href="chat.css" />
+  </head>
+  <body>
+    <header>
+      <div class="who">
+        <strong id="name"></strong>
+        <span id="status"></span>
+      </div>
+      <button id="close" aria-label="Cerrar">×</button>
+    </header>
+    <div id="log" aria-live="polite"></div>
+    <div id="typing" hidden></div>
+    <form id="form">
+      <input id="input" autocomplete="off" maxlength="500" />
+      <button id="send" type="submit">➤</button>
+    </form>
+    <script type="module" src="chat.js"></script>
+  </body>
+</html>

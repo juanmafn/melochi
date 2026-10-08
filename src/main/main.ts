@@ -30,7 +30,8 @@ import { SpotifyAuth } from './spotify/auth';
 import { MusicDirector, type PlayResult } from './spotify/director';
 
 app.setName('Melochi');
-app.setAppUserModelId('Melochi');
+// Igual que el appId del instalador (accesos directos, barra de tareas).
+app.setAppUserModelId('com.melochi.app');
 // Para pruebas: MELOCHI_USER_DATA=carpeta usa otra partida y otros ajustes.
 if (process.env.MELOCHI_USER_DATA) app.setPath('userData', process.env.MELOCHI_USER_DATA);
 
@@ -63,7 +64,7 @@ async function start(): Promise<void> {
 
   let cfg: GameConfig;
   try {
-    cfg = loadConfig(paths.config);
+    cfg = loadConfig(paths.config, paths.defaultConfig);
   } catch (err) {
     dialog.showErrorBox('Melochi — config', String((err as Error).message));
     app.quit();
@@ -515,7 +516,7 @@ async function start(): Promise<void> {
 
   watchDir(paths.config, () => {
     try {
-      cfg = loadConfig(paths.config);
+      cfg = loadConfig(paths.config, paths.defaultConfig);
       game.setConfig(cfg);
       console.log('[config] Recargada.');
     } catch (err) {

@@ -2,7 +2,16 @@
 
 Mascota de escritorio tipo Tamagotchi para Windows. El diseño completo está en [docs/GDD.md](docs/GDD.md).
 
-**Estado:** fases 1 (mascota viva), 2 (Spotify) y 3 (chat con IA local). Los minijuegos llegan en la fase 4.
+**Estado:** las 4 fases del GDD están hechas (mascota viva, Spotify, chat con IA local y juego completo).
+
+## Instalar
+
+Ejecuta `Melochi-Setup-<versión>.exe` (se crea con `npm run dist`, en `release/`). Deja elegir la carpeta de instalación y crea accesos directos en el escritorio y en el menú Inicio. No arranca con Windows.
+
+- El instalador no está firmado, así que Windows SmartScreen puede avisar («Windows protegió su PC»): **Más información → Ejecutar de todas formas**.
+- La partida, los ajustes, la configuración (`config/`) y las skins (`skins/`) se guardan en `%APPDATA%\Melochi`. Desde el menú de la mascota (**Ajustes**) se abren esas carpetas.
+- Al instalar una versión nueva se conserva todo lo tuyo: los ajustes nuevos se añaden solos y la skin provisional se actualiza (para personalizar una skin, cópiala con otro nombre).
+- Desinstalar (desde Configuración de Windows) no borra `%APPDATA%\Melochi`.
 
 ## IA local (chat)
 
@@ -54,7 +63,8 @@ Otros comandos:
 | `npm start` | Abre el juego ya compilado |
 | `npm run watch` | Recompila al guardar (luego cierra y vuelve a abrir el juego) |
 | `npm run typecheck` | Comprueba los tipos de TypeScript |
-| `npm run gen:placeholder` | Regenera la skin provisional |
+| `npm run gen:placeholder` | Regenera la skin provisional (y el icono del programa, `build/icon.png`) |
+| `npm run dist` | Crea el instalador de Windows en `release/` (con electron-builder; sus descargas se guardan en `.cache/`) |
 
 ## Cómo se juega
 

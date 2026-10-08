@@ -3,3 +3,5 @@ dist/
 out/
 *.log
 .claude/settings.local.json
+release/
+.cache/

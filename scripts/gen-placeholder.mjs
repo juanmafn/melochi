@@ -639,6 +639,11 @@ for (const name of AS_SHEET_TEXTUREPACKER) {
 
 // Icono de la bandeja del sistema
 write(join(out, 'icon.png'), rendered.idle[0].downscale(4).png());
+// Icono del programa (instalador, accesos directos): 256 px, recortando un poco el margen de arriba.
+{
+  const big = drawPet({ ...ANIMS.feliz_idle.f(0), dy: 0 }, 2);
+  write(join(root, 'build', 'icon.png'), big.png());
+}
 
 // ====================================================================
 // Iconos de objetos (48x48)

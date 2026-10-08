@@ -1,7 +1,9 @@
 {
   "name": "melochi",
+  "productName": "Melochi",
   "version": "0.1.0",
   "description": "Mascota de escritorio tipo Tamagotchi que controla tu Spotify según su estado de ánimo",
+  "author": "Juanma",
   "private": true,
   "main": "dist/main.js",
   "scripts": {
@@ -10,7 +12,8 @@
     "start": "electron .",
     "dev": "node scripts/build.mjs && electron .",
     "typecheck": "tsc --noEmit",
-    "gen:placeholder": "node scripts/gen-placeholder.mjs"
+    "gen:placeholder": "node scripts/gen-placeholder.mjs",
+    "dist": "node scripts/dist.mjs"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -22,6 +25,7 @@
     "@types/node": "^24.0.0",
     "@types/pngjs": "^6.0.5",
     "electron": "^44.6.0",
+    "electron-builder": "^26.17.0",
     "esbuild": "^0.28.2",
     "pixi.js": "^8.22.0",
     "pngjs": "^7.0.0",
@@ -30,5 +34,46 @@
   "allowScripts": {
     "koffi@3.3.2": true,
     "esbuild@0.28.2": true
+  },
+  "build": {
+    "appId": "com.melochi.app",
+    "productName": "Melochi",
+    "copyright": "© 2026 Juanma",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.map",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "config", "to": "defaults/config" },
+      { "from": "skins", "to": "defaults/skins" },
+      { "from": "locales", "to": "defaults/locales" }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/@koromix/**"
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "executableName": "Melochi"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Melochi",
+      "deleteAppDataOnUninstall": false,
+      "language": "3082",
+      "artifactName": "Melochi-Setup-${version}.${ext}"
+    }
   }
 }

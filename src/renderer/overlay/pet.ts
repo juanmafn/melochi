@@ -214,7 +214,8 @@ export class Pet {
   setView(view: GameView): void {
     const moodChanged = this.view?.mood.id !== view.mood.id;
     this.view = view;
-    if (moodChanged && this.mode !== 'action') this.play(this.baseAnim());
+    // Acercándose a la pantalla lleva su propia animación (no se cambia a mitad).
+    if (moodChanged && this.mode !== 'action' && this.mode !== 'closeup') this.play(this.baseAnim());
   }
 
   // ---------- Propiedad (qué ventana la muestra) ----------

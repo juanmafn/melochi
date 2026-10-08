@@ -27,6 +27,7 @@
     "hide_peek": {"frames":"anims/hide_peek/","fps":3,"loop":true},
     "climb": {"frames":"anims/climb/","fps":8,"loop":true},
     "front": {"frames":"anims/front/","fps":8,"loop":true,"escala":0.25},
+    "cabreada_front": {"frames":"anims/cabreada_front/","fps":10,"loop":true,"escala":0.25},
     "knock": {"frames":"anims/knock/","fps":6,"loop":true,"escala":0.25},
     "knock_angry": {"frames":"anims/knock_angry/","fps":10,"loop":true,"escala":0.25},
     "talk": {"frames":"anims/talk/","fps":8,"loop":true},

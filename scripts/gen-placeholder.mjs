@@ -506,6 +506,22 @@ const ANIMS = {
       feet: [[0, -Math.max(0, sin(i, 6, 6))], [0, -Math.max(0, -sin(i, 6, 6))]],
     }),
   },
+  // Cabreada se acerca roja y con mala cara (variante por mood de "front").
+  cabreada_front: {
+    n: 6,
+    fps: 10,
+    loop: true,
+    f: (i) => ({
+      color: C.red,
+      dy: -Math.abs(sin(i, 6, 3)),
+      look: 0,
+      eyes: 'angry',
+      mouth: 'frown',
+      antenna: [-0.2, 0.2, -0.2, 0.2, -0.1, 0.1][i],
+      feet: [[0, -Math.max(0, sin(i, 6, 6))], [0, -Math.max(0, -sin(i, 6, 6))]],
+      extras: steam(i / 6),
+    }),
+  },
   knock: {
     n: 4,
     fps: 6,
@@ -571,7 +587,7 @@ function write(path, data) {
 }
 
 // Las de acercarse a la pantalla se ven 4-5 veces más grandes: se dibujan a 4x y se marcan con "escala": 0.25.
-const HIRES = { front: 4, knock: 4, knock_angry: 4 };
+const HIRES = { front: 4, cabreada_front: 4, knock: 4, knock_angry: 4 };
 
 const rendered = {};
 for (const [name, a] of Object.entries(ANIMS)) rendered[name] = Array.from({ length: a.n }, (_, i) => drawPet(a.f(i), HIRES[name] ?? 1));

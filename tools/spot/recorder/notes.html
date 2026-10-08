@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Tareas de hoy</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 22px 34px;
+        overflow: hidden;
+        font-family: 'Segoe UI', sans-serif;
+        background: #fffaf5;
+        color: #3b2f2a;
+        user-select: none;
+      }
+      h1 {
+        margin: 0 0 18px;
+        font-size: 26px;
+        font-weight: 700;
+        color: #e8735a;
+      }
+      li {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 9px 0;
+        font-size: 19px;
+        border-bottom: 1px solid #f2e4d9;
+      }
+      ul {
+        margin: 0;
+        padding: 0;
+      }
+      .box {
+        width: 22px;
+        height: 22px;
+        border: 2px solid #e8a48f;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        color: #fff;
+      }
+      .done .box {
+        background: #e8a48f;
+      }
+      .done span {
+        text-decoration: line-through;
+        color: #a8968d;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📝 Tareas de hoy</h1>
+    <ul>
+      <li class="done"><div class="box">✓</div><span>Café de la mañana</span></li>
+      <li class="done"><div class="box">✓</div><span>Responder correos</span></li>
+      <li><div class="box"></div><span>Terminar la presentación</span></li>
+      <li><div class="box"></div><span>Dar de comer a Melochi 🍪</span></li>
+      <li><div class="box"></div><span>Jugar un rato con ella 🎾</span></li>
+    </ul>
+  </body>
+</html>

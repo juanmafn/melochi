@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Escritorio</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: 'Segoe UI', sans-serif;
+        user-select: none;
+      }
+      body {
+        background:
+          radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0) 22%),
+          radial-gradient(circle at 82% 30%, rgba(255, 214, 165, 0.7) 0, rgba(255, 214, 165, 0) 30%),
+          radial-gradient(circle at 70% 85%, rgba(186, 160, 240, 0.55) 0, rgba(186, 160, 240, 0) 35%),
+          linear-gradient(160deg, #9fd3f0 0%, #c8e3f2 35%, #f7d9c4 70%, #f4b9b2 100%);
+      }
+      /* Colinas suaves al fondo */
+      .hill {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(1px);
+      }
+      .icons {
+        position: absolute;
+        top: 24px;
+        left: 22px;
+        display: grid;
+        gap: 22px;
+      }
+      .icon {
+        width: 92px;
+        text-align: center;
+        color: #2e3a4a;
+        font-size: 14px;
+        font-weight: 600;
+        text-shadow: 0 0 4px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.7);
+      }
+      .icon div {
+        font-size: 46px;
+        line-height: 58px;
+        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hill" style="left: -10%; bottom: -38%; width: 70%; height: 70%; background: #b9e0b0"></div>
+    <div class="hill" style="right: -15%; bottom: -45%; width: 80%; height: 75%; background: #a6d69c"></div>
+    <div class="hill" style="left: 30%; bottom: -55%; width: 60%; height: 75%; background: #c7e8bd"></div>
+    <div class="icons">
+      <div class="icon"><div>🗑️</div>Papelera</div>
+      <div class="icon"><div>📁</div>Documentos</div>
+      <div class="icon"><div>🎵</div>Música</div>
+      <div class="icon"><div>🖼️</div>Fotos</div>
+    </div>
+  </body>
+</html>

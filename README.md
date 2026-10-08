@@ -125,6 +125,7 @@ En `tools/` hay scripts que se conectan a esos puertos:
 | `tools/realmouse.mjs` | Prueba con el ratón real de Windows: clic a través, arrastrar, lanzar, menú contextual y huir del cursor (`flee`). Mueve tu cursor. |
 | `tools/mischief.mjs` | Fuerza travesuras de escritorio (post-it, esconderse en un borde o tras una ventana, sentarse en una ventana, una al azar), trepar a una ventana (`climb`), bailar midiendo los saltitos al ritmo (`dance`) y acercarse a la pantalla (`knock idle|ignored|angry`); `angry`/`calm` la cabrean o la calman. |
 | `tools/window-test/` | Abre una ventana normal (y la mueve si se indica) para probar sentarse encima, esconderse detrás o trepar: `electron.exe tools/window-test 30 12`. |
+| `tools/spot/record.mjs` | Graba el spot publicitario (`release/spot/Melochi-spot.mp4`, 1080p, ~1:30): pone un escritorio de atrezzo, música original (`tools/spot/music.mjs`), dirige las escenas en directo con una partida de prueba (`MELOCHI_USER_DATA`) y añade títulos. Mueve tu ratón y suena por los altavoces: no toques nada mientras graba. Necesita ffmpeg y Ollama. |
 | `tools/beat-test/` | Suena un ritmo de prueba por los altavoces (bombo y charles) para probar el baile: `electron.exe tools/beat-test 120 95 20` (BPM, BPM, segundos de cada uno). |
 | `tools/exstyle.mjs` | Muestra si la ventana deja pasar el ratón (`WS_EX_TRANSPARENT`). |
 | `tools/music.mjs` | Prueba Spotify: sugerencias, saltar su canción, travesuras, gustos y el Vinilo misterioso. **Pone música de verdad.** |

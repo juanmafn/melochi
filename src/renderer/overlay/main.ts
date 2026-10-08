@@ -186,7 +186,7 @@ async function boot(): Promise<void> {
   }
 
   // Acceso para depurar desde las DevTools (no lo usa el juego).
-  Object.assign(window, { __melochi: { pet, input, toys, openPanel, view: () => view, skin: () => skin } });
+  Object.assign(window, { __melochi: { pet, input, toys, panels, openPanel, view: () => view, skin: () => skin } });
 
   input.install();
   if (init.own) {

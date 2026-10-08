@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Grabador del spot</title>
+  </head>
+  <body>
+    <script>
+      const W = 1920;
+      const H = 1080;
+      const FPS = 30;
+      const FONT = "'Segoe UI', 'Segoe UI Emoji', sans-serif";
+
+      const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+      /** Opacidad de un título: entra y sale con un fundido de `fade` segundos. */
+      function alphaFor(c, t, fade = 0.45) {
+        if (t < c.start || t > c.end) return 0;
+        const a = c.noFadeIn ? 1 : Math.min(1, (t - c.start) / fade);
+        const b = c.noFadeOut ? 1 : Math.min(1, (c.end - t) / fade);
+        return ease(Math.max(0, Math.min(a, b)));
+      }
+
+      function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      /** Tarjeta a pantalla completa (inicio y final). */
+      function drawCard(ctx, c, a, t, icon) {
+        ctx.save();
+        ctx.globalAlpha = a;
+        const g = ctx.createLinearGradient(0, 0, W, H);
+        g.addColorStop(0, '#ffb38a');
+        g.addColorStop(0.5, '#ff8fa3');
+        g.addColorStop(1, '#b49af0');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        // Burbujas suaves de fondo.
+        for (let i = 0; i < 14; i++) {
+          const x = ((i * 397) % W) + Math.sin(t * 0.6 + i) * 30;
+          const y = ((i * 263) % H) + Math.cos(t * 0.5 + i * 2) * 25;
+          ctx.fillStyle = 'rgba(255,255,255,0.10)';
+          ctx.beginPath();
+          ctx.arc(x, y, 40 + (i % 5) * 28, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Mascota que bota un poco.
+        const bob = Math.abs(Math.sin(t * Math.PI * 1.9)) * 18;
+        const size = 300;
+        ctx.drawImage(icon, W / 2 - size / 2, H / 2 - 330 - bob, size, size);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = 'rgba(80,30,60,0.35)';
+        ctx.shadowBlur = 24;
+        ctx.font = `800 150px ${FONT}`;
+        ctx.fillText(c.title, W / 2, H / 2 + 120);
+        ctx.shadowBlur = 12;
+        ctx.font = `600 50px ${FONT}`;
+        ctx.fillText(c.subtitle ?? '', W / 2, H / 2 + 205);
+        if (c.extra) {
+          ctx.font = `500 36px ${FONT}`;
+          ctx.fillStyle = 'rgba(255,255,255,0.92)';
+          ctx.fillText(c.extra, W / 2, H / 2 + 285);
+        }
+        ctx.restore();
+      }
+
+      /** Título de escena arriba (la mascota vive abajo, en la barra de tareas). */
+      function drawCaption(ctx, c, a, t) {
+        ctx.save();
+        ctx.globalAlpha = a;
+        const slide = (1 - a) * -20;
+        ctx.font = `800 64px ${FONT}`;
+        const tw = ctx.measureText(c.title).width;
+        ctx.font = `500 34px ${FONT}`;
+        const sw = c.subtitle ? ctx.measureText(c.subtitle).width : 0;
+        const bw = Math.max(tw, sw) + 100;
+        const bh = c.subtitle ? 170 : 110;
+        const x = W / 2 - bw / 2;
+        const y = 56 + slide;
+        ctx.shadowColor = 'rgba(0,0,0,0.25)';
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = 'rgba(38, 28, 48, 0.78)';
+        roundRect(ctx, x, y, bw, bh, 40);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.font = `800 64px ${FONT}`;
+        ctx.fillText(c.title, W / 2, y + 82);
+        if (c.subtitle) {
+          ctx.fillStyle = '#ffd3b8';
+          ctx.font = `500 34px ${FONT}`;
+          ctx.fillText(c.subtitle, W / 2, y + 138);
+        }
+        ctx.restore();
+      }
+
+      async function startRecording(cfg) {
+        try {
+          const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: FPS }, audio: true });
+          const audioTrack = screenStream.getAudioTracks()[0];
+          if (!audioTrack) return 'sin audio';
+          const video = document.createElement('video');
+          video.srcObject = new MediaStream(screenStream.getVideoTracks());
+          video.muted = true;
+          await video.play();
+
+          const icon = new Image();
+          icon.src = cfg.icon;
+          await icon.decode();
+
+          const canvas = document.createElement('canvas');
+          canvas.width = W;
+          canvas.height = H;
+          const ctx = canvas.getContext('2d');
+          const out = canvas.captureStream(FPS);
+          const stream = new MediaStream([out.getVideoTracks()[0], audioTrack]);
+          const recorder = new MediaRecorder(stream, {
+            mimeType: 'video/mp4;codecs=avc1.640028,mp4a.40.2',
+            videoBitsPerSecond: 16_000_000,
+            audioBitsPerSecond: 192_000,
+          });
+          const chunks = [];
+          recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+          recorder.onstop = async () => {
+            for (const t of screenStream.getTracks()) t.stop();
+            const blob = new Blob(chunks, { type: 'video/mp4' });
+            await window.spot.save(await blob.arrayBuffer());
+          };
+
+          const music = new Audio(cfg.music);
+          music.volume = cfg.volume;
+          const { crop } = cfg;
+          let t0 = 0;
+          const draw = () => {
+            const t = (performance.now() - t0) / 1000;
+            ctx.drawImage(video, crop.x, crop.y, crop.w, crop.h, 0, 0, W, H);
+            for (const c of cfg.captions) {
+              const a = alphaFor(c, t);
+              if (a <= 0) continue;
+              if (c.kind === 'card') drawCard(ctx, c, a, t, icon);
+              else drawCaption(ctx, c, a, t);
+            }
+          };
+          recorder.start(1000);
+          t0 = performance.now();
+          void music.play();
+          draw();
+          const timer = setInterval(draw, 1000 / FPS);
+          setTimeout(() => {
+            clearInterval(timer);
+            music.pause();
+            recorder.stop();
+          }, cfg.seconds * 1000);
+          return 'ok';
+        } catch (err) {
+          return String(err);
+        }
+      }
+    </script>
+  </body>
+</html>

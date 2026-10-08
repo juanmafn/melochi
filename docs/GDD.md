@@ -230,31 +230,34 @@ Si cerraste el programa con ella cabreada, al volver a abrirlo **te recibe con u
 
 ### 6.4 Minijuegos
 
-Todos se lanzan desde el menú de clic derecho → **Jugar**. No están disponibles en modo seguro.
+Todos se lanzan desde el menú de clic derecho → **Jugar**. No están disponibles en modo seguro. Las preguntas usan botones en su bocadillo; si no respondes en el tiempo dado, lo deja ("¿Ya no juegas?"). Recompensas en `config/stats.json` → `minijuegos`.
+
+**Juguetes físicos** (al usarlos desde el inventario; la recompensa llega al terminar de jugar)
+- **Pelota**: aparece a sus pies; la coges y la lanzas (con física y rebotes). Ella corre, la recoge, la trae sobre la cabeza hasta donde la lanzaste y la suelta: Diversión +10.
+- **Láser**: 30 s con un punto rojo que sigue a tu cursor; ella lo persigue: Diversión +20.
 
 **Piedra, papel o tijera**
-- Al mejor de 3. Ella elige con algo de personalidad: tiene una jugada favorita que repite más.
-- Si está mosqueada, **a veces hace trampa** (cambia su jugada en el último momento, con una animación descarada). Si la pillas haciendo clic sobre ella mientras cambia, ganas la ronda.
-- Ganar → drop raro. Perder → se regodea, pero también le sube la Diversión.
+- Al mejor de 3 (máx. 5 rondas; empate final = tablas). Tiene una jugada favorita que repite más.
+- Si está mosqueada (mosqueo ≥ 40), a veces (35 %) **hace trampa**: enseña su jugada y luego "…digo ¡Papel! 😏". Si le haces clic en esos 2 segundos, la pillas y ganas la ronda.
+- Ganar → drop de la tabla `minijuegoGanado`. Perder → se regodea y le sube la Diversión.
 
 **Adivina la canción** (requiere Spotify)
-- Pone una canción al azar de tus playlists de mood o de tus favoritos, desde un punto aleatorio.
-- Tras 10 segundos pausa y te muestra **4 opciones** (título – artista). Tienes 15 segundos para elegir.
+- Canciones de **tus playlists propias** (Spotify solo deja leer las canciones de playlists tuyas) y de sus artistas favoritos.
+- Cada ronda: suena 10 s desde un punto aleatorio, se pausa y salen **4 opciones** (en columna) durante 15 s. 3 rondas.
 - Va de buena fe: no mires la app de Spotify 😉.
-- 3 rondas. Cada acierto da Diversión; acertar las 3 da un drop épico garantizado (el Vinilo misterioso es más probable).
-- Al acabar, retoma lo que estabas escuchando.
+- Al acabar, **vuelve a dejar lo que estabas escuchando** (canción, posición y si estaba en pausa). Mientras dura, la música no reacciona a gustos ni hace sugerencias.
+- 3/3 → premio de minijuego ganado; 0/3 → se ríe de ti.
 
 **Escondite**
-- Te dice *"¡Cuenta hasta 10!"*, desaparece y se esconde en un sitio aleatorio de cualquier monitor: asomando por el borde de la pantalla, detrás del borde de una ventana, en una esquina…
-- Solo se ve un trocito (animación `hide_peek`: una oreja o una cola).
-- Tienes **60 segundos** para hacerle clic. Si acercas el cursor, sus bocadillos dan pistas: *"frío… templado… ¡caliente!"*.
-- La encuentras → Diversión y Cariño, y un drop. Se acaba el tiempo → sale riéndose (Diversión para ella, nada para ti).
+- "¡Cuenta hasta 10!", desaparece y se esconde en un monitor al azar: **asomando media cara por el borde izquierdo o derecho**, o **detrás de la barra de tareas** (solo asoman la antena y los ojos; lo de debajo del suelo no se ve ni se puede pulsar). Animación `hide_peek`.
+- Escondida no habla ni suena (no se delata).
+- Tienes **60 segundos**. Junto al cursor salen pistas: *"Frío, frío ❄️ … ¡Caliente! 🔥 … ¡¡Que te quemas!!"*, o "prueba en otra pantalla".
+- La encuentras (clic) → premio. Se acaba el tiempo → sale riéndose.
 
-**Juegos por chat (LLM)**
-- **Adivinanzas**: ella pone una adivinanza y tú respondes.
-- **Trivia musical**: preguntas sobre la canción o el artista que suena, o sobre música en general.
-- **Historias**: inventáis una historia por turnos.
-- Sin Ollama, solo están las adivinanzas, sacadas de una lista predefinida y traducida.
+**Juegos por chat**
+- **Adivinanzas** y **trivia musical**: la pregunta sale de una **lista fija** (traducida, en `locales/*.json`) y **el acierto lo comprueba el juego** comparando con las respuestas válidas. La IA solo reacciona en personaje (sabe la respuesta y si has acertado: felicita o da una pista sin destriparla). Los modelos pequeños se inventaban preguntas sin sentido, por eso no las generan. 3 intentos (adivinanzas) o 2 (trivia). Sin IA funcionan igual, con frases fijas.
+- **Historia por turnos**: libre con la IA (necesita Ollama); termina a los 6 turnos tuyos.
+- Ganar → premio de la tabla `juegoChat`.
 
 ---
 

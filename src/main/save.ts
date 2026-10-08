@@ -10,6 +10,8 @@ export interface SaveData {
     createdAt: number;
     favoritos: string[];
     odiados: string[];
+    /** Su jugada favorita en piedra-papel-tijera (la repite más). */
+    rpsFav?: 'rock' | 'paper' | 'scissors';
   };
   stats: Stats;
   afinidad: number;

@@ -23,10 +23,18 @@
     "tickle": { "diversion": 2 },
     "poke": { "carino": 0.5 },
     "throw": { "diversion": 2 },
-    "throwHard": { "diversion": 1, "mosqueo": 3 }
+    "throwHard": { "diversion": 1, "mosqueo": 3 },
+    "fetch": { "diversion": 10, "carino": 2 },
+    "laser": { "diversion": 20 }
   },
   "rechazoCariciasCabreada": 0.5,
   "travesuraCooldownMinutos": 10,
+  "minijuegos": {
+    "ganar": { "diversion": 8, "carino": 4, "afinidad": 0.5 },
+    "perder": { "diversion": 10 },
+    "trampaRps": 0.35,
+    "trampaDesdeMosqueo": 40
+  },
   "modosSeguros": {
     "pantallaCompleta": true,
     "llamadas": true,

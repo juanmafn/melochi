@@ -22,6 +22,7 @@
     "angry": {"frames":"anims/angry/","fps":12,"loop":true},
     "dance": {"frames":"anims/dance/","fps":10,"loop":true},
     "mischief": {"frames":"anims/mischief/","fps":10,"loop":true},
+    "hide_peek": {"frames":"anims/hide_peek/","fps":3,"loop":true},
     "talk": {"frames":"anims/talk/","fps":8,"loop":true},
     "petted": {"frames":"anims/petted/","fps":8,"loop":true},
     "walk": {"sheet":"anims/walks.json","tag":"walk","loop":true},

@@ -1,7 +1,8 @@
 import 'pixi.js/unsafe-eval';
 import { Application } from 'pixi.js';
 import type { OverlayApi } from '../../preload/overlay';
-import type { GameView, OwnMessage, PanelId, Reaction } from '../../shared/types';
+import type { GameView, HintMessage, OwnMessage, PanelId, Reaction, ToyKind } from '../../shared/types';
+import { Toys } from './toys';
 import { Input } from './input';
 import { Pet } from './pet';
 import { loadSkin, type LoadedSkin } from './skin';
@@ -33,10 +34,25 @@ async function boot(): Promise<void> {
   document.getElementById('stage')!.appendChild(app.canvas);
 
   const uiRoot = document.getElementById('ui')!;
+
+  // Pista "frío/caliente" del escondite, junto al cursor.
+  const hint = document.createElement('div');
+  hint.className = 'hint';
+  uiRoot.appendChild(hint);
+  let hintTimer: number | null = null;
+  const showHint = (msg: HintMessage) => {
+    hint.textContent = msg.text;
+    hint.style.left = `${Math.min(msg.x + 18, window.innerWidth - 160)}px`;
+    hint.style.top = `${Math.min(msg.y + 22, window.innerHeight - 40)}px`;
+    hint.classList.add('visible');
+    if (hintTimer) clearTimeout(hintTimer);
+    hintTimer = window.setTimeout(() => hint.classList.remove('visible'), 1400);
+  };
   const pet = new Pet(app.stage, display, displays, api);
-  const input = new Input(pet, api);
   const sound = new SoundPlayer();
   const bubble = new Bubble(uiRoot, (promptId, choiceId) => api.choose(promptId, choiceId));
+  const toys = new Toys(app.stage, pet, api, display, (text) => bubble.show(text));
+  const input = new Input(pet, api, toys);
   const ground = new GroundItems(uiRoot, display, (id) => api.collect(id));
   const inventory = new InventoryPanel(uiRoot, (slot) => api.useItem(slot), (x, y) => pet.hitTest(x, y));
   const stats = new StatsPanel(uiRoot);
@@ -52,6 +68,7 @@ async function boot(): Promise<void> {
     skin = next;
     pet.setSkin(next);
     sound.setSkin(manifest);
+    void toys.setSkinVersion(manifest.version);
     if (view) {
       ground.render(view, manifest.version, true);
       for (const p of Object.values(panels)) if (p.isOpen) p.render(view, manifest.version);
@@ -66,6 +83,7 @@ async function boot(): Promise<void> {
   app.ticker.add((t) => {
     // Mientras espera tu respuesta en un bocadillo, se queda quieta para que puedas pulsar.
     if (bubble.waiting) pet.hold();
+    toys.update(t.deltaMS);
     pet.update(t.deltaMS);
     bubble.update(pet.x, pet.y - pet.height, pet.owned, window.innerWidth);
     if (!pet.needsRender) {
@@ -95,6 +113,7 @@ async function boot(): Promise<void> {
 
   api.on('pet:release', (msg: { poof: boolean }) => {
     pet.release(msg.poof);
+    toys.cancel();
     bubble.hide();
     for (const p of Object.values(panels)) p.close();
   });
@@ -108,7 +127,15 @@ async function boot(): Promise<void> {
 
   api.on('pet:go-home', () => pet.goHome());
 
+  api.on('toy:start', (msg: { kind: ToyKind }) => {
+    if (view) toys.start(msg.kind, view.ui);
+  });
+
+  api.on('game:hint', (msg: HintMessage) => showHint(msg));
+
   api.on('game:reaction', (r: Reaction) => {
+    // Escondida no se delata: ni bocadillos ni sonidos.
+    if (pet.isHiding) return;
     if (r.anim) pet.react(r.anim, r.animMs);
     if (r.bubble) bubble.show(r.bubble, r.choices, r.promptId, r.durationMs);
     if (r.sound) sound.play(r.sound);
@@ -128,7 +155,7 @@ async function boot(): Promise<void> {
   }
 
   // Acceso para depurar desde las DevTools (no lo usa el juego).
-  Object.assign(window, { __melochi: { pet, input, openPanel, view: () => view, skin: () => skin } });
+  Object.assign(window, { __melochi: { pet, input, toys, openPanel, view: () => view, skin: () => skin } });
 
   input.install();
   if (init.own) {

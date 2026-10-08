@@ -30,8 +30,10 @@ export interface Device {
 
 export interface PlaylistInfo {
   uri: string;
+  id: string;
   name: string;
   owner: string;
+  ownerId: string;
 }
 
 export class SpotifyError extends Error {
@@ -105,7 +107,26 @@ export class SpotifyApi {
     const out: PlaylistInfo[] = [];
     for (let offset = 0; offset < max; offset += 50) {
       const page = await this.request('GET', '/me/playlists', { query: { limit: 50, offset } });
-      for (const p of page?.items ?? []) if (p) out.push({ uri: p.uri, name: p.name, owner: p.owner?.display_name ?? '' });
+      for (const p of page?.items ?? []) {
+        if (p) out.push({ uri: p.uri, id: p.id, name: p.name, owner: p.owner?.display_name ?? '', ownerId: p.owner?.id ?? '' });
+      }
+      if (!page?.next) break;
+    }
+    return out;
+  }
+
+  /**
+   * Canciones de una playlist. Desde 2026 Spotify solo las da de playlists tuyas (o colaborativas).
+   * El campo se llama `item` (antes `track`): se aceptan los dos.
+   */
+  async playlistTracks(id: string, max = 100): Promise<SpotifyTrack[]> {
+    const out: SpotifyTrack[] = [];
+    for (let offset = 0; offset < max; offset += 50) {
+      const page = await this.request('GET', `/playlists/${encodeURIComponent(id)}/items`, { query: { limit: 50, offset } });
+      for (const it of page?.items ?? []) {
+        const t = parseTrack(it?.item ?? it?.track);
+        if (t) out.push(t);
+      }
       if (!page?.next) break;
     }
     return out;
@@ -136,10 +157,19 @@ export class SpotifyApi {
     }));
   }
 
-  async play(opts: { contextUri?: string; uris?: string[]; deviceId?: string | null }): Promise<void> {
+  async play(opts: {
+    contextUri?: string;
+    uris?: string[];
+    deviceId?: string | null;
+    /** Empezar por esta canción del contexto. */
+    offsetUri?: string;
+    positionMs?: number;
+  }): Promise<void> {
     const body: Json = {};
     if (opts.contextUri) body.context_uri = opts.contextUri;
     if (opts.uris) body.uris = opts.uris;
+    if (opts.offsetUri) body.offset = { uri: opts.offsetUri };
+    if (opts.positionMs) body.position_ms = Math.max(0, Math.round(opts.positionMs));
     await this.request('PUT', '/me/player/play', { query: opts.deviceId ? { device_id: opts.deviceId } : {}, body });
   }
 

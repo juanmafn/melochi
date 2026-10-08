@@ -1,10 +1,10 @@
-import { Sprite, type Container } from 'pixi.js';
+import { Graphics, Sprite, type Container } from 'pixi.js';
 import { clamp, groundY, neighborDisplay } from '../../shared/displays';
-import type { DisplayInfo, GameView, OwnMessage, PetGoal, PetPose } from '../../shared/types';
+import type { DisplayInfo, GameView, HideEdge, OwnMessage, PetGoal, PetPose } from '../../shared/types';
 import type { OverlayApi } from '../../preload/overlay';
 import type { LoadedAnim, LoadedSkin } from './skin';
 
-type Mode = 'idle' | 'walk' | 'fall' | 'action' | 'dragged';
+type Mode = 'idle' | 'walk' | 'fall' | 'action' | 'dragged' | 'hiding';
 
 const GRAVITY = 2200;
 const WALK_SPEED = 70;
@@ -56,6 +56,12 @@ export class Pet {
   private fx: { kind: 'in' | 'out'; t: number } | null = null;
   /** Mientras el cursor está encima, no echa a andar (para poder acariciarla). */
   private heldUntil = 0;
+  /** Jugando (juguete o minijuego): no decide sola, la mueve el juego con runTo(). */
+  playing = false;
+  private speedMult = 1;
+  /** Escondite: por dónde asoma. Con 'bottom' se recorta por debajo del suelo (detrás de la barra de tareas). */
+  private hideEdge: HideEdge | null = null;
+  private clip = new Graphics();
 
   constructor(
     stage: Container,
@@ -64,7 +70,9 @@ export class Pet {
     private api: OverlayApi,
   ) {
     this.sprite.visible = false;
-    stage.addChild(this.sprite);
+    // La máscara tiene que estar en la escena y "visible" (Pixi la oculta solo al usarla como máscara);
+    // cuando no se usa, se queda vacía.
+    stage.addChild(this.sprite, this.clip);
   }
 
   // ---------- Geometría ----------
@@ -96,6 +104,11 @@ export class Pet {
     return this.mode === 'dragged';
   }
 
+  /** Hacia dónde mira: 1 derecha, -1 izquierda. */
+  get facingDir(): 1 | -1 {
+    return this.facing;
+  }
+
   private toGlobal(): PetPose {
     return {
       x: this.x + this.display.bounds.x,
@@ -113,6 +126,8 @@ export class Pet {
     const f = this.frame;
     if (!this.owned || !this.sprite.visible || !f || !this.skin) return false;
     const [ax, ay] = this.skin.manifest.ancla;
+    // Escondida detrás de la barra de tareas: lo que queda por debajo del suelo no se ve ni se puede pulsar.
+    if (this.hideEdge === 'bottom' && py > this.ground) return false;
     const tx = Math.floor((px - this.x) / (this.facing * this.scale) + ax * f.width);
     const ty = Math.floor((py - this.y) / this.scale + ay * f.height);
     if (tx < 0 || ty < 0 || tx >= f.width || ty >= f.height) return false;
@@ -150,8 +165,11 @@ export class Pet {
     this.sprite.visible = true;
     this.sprite.alpha = 1;
     this.fx = msg.appear === 'poof' ? { kind: 'in', t: 0 } : null;
+    this.setHide(msg.hide ?? null);
 
-    if (msg.dragging) {
+    if (msg.hide) {
+      this.setMode('hiding');
+    } else if (msg.dragging) {
       this.setMode('dragged');
     } else if (p.state === 'fall' || this.y < this.ground - 1) {
       this.setMode('fall');
@@ -164,9 +182,21 @@ export class Pet {
     this.render();
   }
 
+  private setHide(edge: HideEdge | null): void {
+    this.hideEdge = edge;
+    if (edge === 'bottom') {
+      this.clip.clear().rect(0, 0, this.width, this.ground).fill(0xffffff);
+      this.sprite.mask = this.clip;
+    } else {
+      this.sprite.mask = null;
+      this.clip.clear();
+    }
+  }
+
   release(poof: boolean): void {
     if (!this.owned) return;
     this.owned = false;
+    this.setHide(null);
     if (poof) this.fx = { kind: 'out', t: 0 };
     else this.sprite.visible = false;
   }
@@ -178,16 +208,36 @@ export class Pet {
 
   // ---------- Órdenes ----------
 
+  /** Está escondida (escondite): no debe delatarse con bocadillos ni animaciones. */
+  get isHiding(): boolean {
+    return this.mode === 'hiding';
+  }
+
   react(anim: string, durationMs?: number): void {
-    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall') return;
+    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall' || this.mode === 'hiding') return;
     this.play(anim, true);
     const a = this.anim;
     const total = a ? a.frames.reduce((s, f) => s + f.duration, 0) : 0;
     this.setMode('action', durationMs ?? Math.max(MIN_ACTION_MS, a?.loop ? LOOPING_ACTION_MS : total));
   }
 
+  /** Corre hasta x (local) mientras juega. No interrumpe si la están arrastrando o está cayendo. */
+  runTo(x: number, speedMult = 2.2): void {
+    if (!this.owned || this.mode === 'dragged' || this.mode === 'fall') return;
+    this.goal = null;
+    this.speedMult = speedMult;
+    this.targetX = clamp(x, 12, this.width - 12);
+    if (this.mode !== 'walk') this.setMode('walk');
+  }
+
+  /** ¿Está quieta y en el suelo? (para saber si ha llegado adonde la mandó el juego) */
+  get settled(): boolean {
+    return this.mode === 'idle' || this.mode === 'action';
+  }
+
   /** El cursor está encima: se para un momento. */
   hold(): void {
+    if (this.playing) return;
     this.heldUntil = performance.now() + 1500;
     if (this.mode === 'walk' && this.goal?.kind !== 'home') {
       this.targetX = null;
@@ -264,6 +314,7 @@ export class Pet {
         if (now >= this.modeUntil && (this.animDone || this.anim?.loop !== false)) this.idleFor(800 + Math.random() * 1500);
         break;
       case 'dragged':
+      case 'hiding':
         break;
     }
 
@@ -300,6 +351,8 @@ export class Pet {
         return 'fall';
       case 'dragged':
         return 'drag';
+      case 'hiding':
+        return 'hide_peek';
       default:
         return 'idle';
     }
@@ -307,6 +360,10 @@ export class Pet {
 
   /** Decide qué hacer al terminar de estar quieta, según cuánto le apetece explorar en su mood. */
   private decide(): void {
+    if (this.playing) {
+      this.idleFor(300);
+      return;
+    }
     if (this.goal?.kind === 'home') {
       this.goHome();
       return;
@@ -338,7 +395,7 @@ export class Pet {
       this.idleFor(1000);
       return;
     }
-    const speed = WALK_SPEED * (this.view?.mood.comportamiento.velocidad ?? 1);
+    const speed = WALK_SPEED * (this.view?.mood.comportamiento.velocidad ?? 1) * this.speedMult;
     const dx = this.targetX - this.x;
     this.facing = dx >= 0 ? 1 : -1;
     this.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt);
@@ -353,8 +410,10 @@ export class Pet {
     }
     if (Math.abs(this.targetX - this.x) < 1) {
       this.targetX = null;
+      this.speedMult = 1;
       if (this.goal?.kind === 'home') this.goal = null;
-      this.idleFor((1500 + Math.random() * 4000) * (1.5 - (this.view?.mood.comportamiento.exploracion ?? 0.4)));
+      if (this.playing) this.idleFor(200);
+      else this.idleFor((1500 + Math.random() * 4000) * (1.5 - (this.view?.mood.comportamiento.exploracion ?? 0.4)));
     }
   }
 

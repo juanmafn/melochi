@@ -1,5 +1,5 @@
 import { Menu, type MenuItemConstructorOptions } from 'electron';
-import { LANGS, type Lang, type PanelId } from '../shared/types';
+import { LANGS, type ChatGameKind, type Lang, type MinigameKind, type PanelId } from '../shared/types';
 import type { I18n } from './i18n';
 import type { Settings } from './save';
 
@@ -7,6 +7,12 @@ export interface MenuActions {
   openPanel(panel: PanelId): void;
   openMusic(): void;
   openChat(): void;
+  play: {
+    can(kind: MinigameKind): boolean;
+    start(kind: MinigameKind): void;
+    canChat(): boolean;
+    chat(kind: ChatGameKind): void;
+  };
   ai: {
     enabled(): boolean;
     setEnabled(on: boolean): void;
@@ -49,7 +55,22 @@ export function buildPetMenu(i18n: I18n, settings: Settings, a: MenuActions): Me
     { type: 'separator' },
     { label: t('inventory'), click: () => a.openPanel('inventory') },
     { label: t('stats'), click: () => a.openPanel('stats') },
-    { label: t('play'), enabled: false },
+    {
+      label: t('play'),
+      submenu: [
+        ...(['rps', 'song', 'hide'] as MinigameKind[]).map((kind) => ({
+          label: t(`play_${kind}`),
+          enabled: a.play.can(kind),
+          click: () => a.play.start(kind),
+        })),
+        { type: 'separator' as const },
+        ...(['riddles', 'trivia', 'story'] as ChatGameKind[]).map((kind) => ({
+          label: t(`play_${kind}`),
+          enabled: a.play.canChat(),
+          click: () => a.play.chat(kind),
+        })),
+      ],
+    },
     { type: 'separator' },
     {
       label: dndActive ? t('dndActive', { time: until }) : t('dnd'),

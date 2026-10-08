@@ -1,5 +1,6 @@
 import type { OverlayApi } from '../../preload/overlay';
 import type { Pet } from './pet';
+import type { Toys } from './toys';
 
 const DRAG_THRESHOLD = 6;
 const TICKLE_CLICKS = 3;
@@ -22,9 +23,12 @@ export class Input {
   private pokeTimer: number | null = null;
   private stroke = { lastX: 0, dir: 0, travel: 0, times: [] as number[], cooldownUntil: 0 };
 
+  private toyDrag = false;
+
   constructor(
     private pet: Pet,
     private api: OverlayApi,
+    private toys: Toys,
   ) {}
 
   install(): void {
@@ -39,17 +43,20 @@ export class Input {
       if (this.pet.hitTest(e.clientX, e.clientY)) this.api.contextMenu();
     });
     // Si el ratón sale de la ventana (otro monitor), vuelve a dejar pasar los clics.
-    document.addEventListener('mouseleave', () => this.setIgnore(true));
+    document.addEventListener('mouseleave', () => {
+      this.toys.mouseLeave();
+      this.setIgnore(true);
+    });
   }
 
   private isInteractive(x: number, y: number): boolean {
     const target = document.elementFromPoint(x, y);
     if (target?.closest('.interactive')) return true;
-    return this.pet.hitTest(x, y);
+    return this.pet.hitTest(x, y) || this.toys.hitTest(x, y);
   }
 
   private setIgnore(ignore: boolean): void {
-    if (this.press || this.dragging) return;
+    if (this.press || this.dragging || this.toyDrag) return;
     if (ignore === this.ignoring) return;
     this.ignoring = ignore;
     this.api.setIgnoreMouse(ignore);
@@ -57,6 +64,7 @@ export class Input {
 
   /** Llega también cuando la ventana ignora el ratón (eventos reenviados). */
   private onMouseMove(e: MouseEvent): void {
+    this.toys.mouseMove(e.clientX, e.clientY);
     this.setIgnore(!this.isInteractive(e.clientX, e.clientY));
     if (!this.press && !this.dragging && this.pet.hitTest(e.clientX, e.clientY)) {
       this.pet.hold();
@@ -88,12 +96,24 @@ export class Input {
   }
 
   private onPointerDown(e: PointerEvent): void {
-    if (e.button !== 0 || !this.pet.hitTest(e.clientX, e.clientY)) return;
+    if (e.button !== 0) return;
+    // La pelota tiene prioridad (suele estar a los pies de la mascota).
+    if (this.toys.hitTest(e.clientX, e.clientY)) {
+      this.toyDrag = true;
+      this.toys.pointerDown(e.clientX, e.clientY);
+      document.documentElement.setPointerCapture(e.pointerId);
+      return;
+    }
+    if (!this.pet.hitTest(e.clientX, e.clientY)) return;
     this.press = { x: e.clientX, y: e.clientY };
     document.documentElement.setPointerCapture(e.pointerId);
   }
 
   private onPointerMove(e: PointerEvent): void {
+    if (this.toyDrag) {
+      this.toys.pointerMove(e.clientX, e.clientY);
+      return;
+    }
     if (!this.press || this.dragging) return;
     if (Math.hypot(e.clientX - this.press.x, e.clientY - this.press.y) < DRAG_THRESHOLD) return;
     this.dragging = true;
@@ -104,6 +124,12 @@ export class Input {
 
   private onPointerUp(e: PointerEvent): void {
     if (e.button !== 0) return;
+    if (this.toyDrag) {
+      this.toyDrag = false;
+      this.toys.pointerUp();
+      this.setIgnore(!this.isInteractive(e.clientX, e.clientY));
+      return;
+    }
     const wasDragging = this.dragging;
     const pressed = this.press;
     this.press = null;

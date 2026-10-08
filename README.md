@@ -62,7 +62,8 @@ Otros comandos:
 - **Pasa el cursor de lado a lado** por encima: caricias.
 - **Arrástrala** y suéltala con impulso para lanzarla (sin pasarte, que se marea).
 - **Clic**: te saluda y abre el chat.
-- **Clic derecho**: hablar, inventario, estado, "No molestar", mandarla a casa, ajustes.
+- **Clic derecho**: hablar, inventario, estado, **jugar** (piedra-papel-tijera, adivina la canción, escondite, adivinanzas, trivia musical, historia), "No molestar", mandarla a casa, ajustes.
+- **Juguetes**: usa la Pelota (lánzasela y te la trae) o el Puntero láser (persigue tu cursor) desde el inventario.
 - Al jugar con ella **suelta objetos**: haz clic en ellos para recogerlos y dáselos desde el inventario (clic o arrastrando hasta ella).
 - También hay un icono en la bandeja del sistema con el mismo menú.
 

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { toMain, toOverlay } from '../shared/ipc';
-import type { InteractionType, OverlayInit, PetPose, SkinManifest } from '../shared/types';
+import type { InteractionType, OverlayInit, PetPose, SkinManifest, ToyKind } from '../shared/types';
 
 type Listener = (payload: any) => void;
 
@@ -19,6 +19,7 @@ const api = {
   collect: (groundId: string) => ipcRenderer.send(toMain.collect, groundId),
   choose: (promptId: string, choiceId: string) => ipcRenderer.send(toMain.choose, promptId, choiceId),
   openChat: () => ipcRenderer.send(toMain.openChat),
+  toyDone: (kind: ToyKind) => ipcRenderer.send(toMain.toyDone, kind),
   on: (channel: (typeof toOverlay)[keyof typeof toOverlay], listener: Listener) => {
     ipcRenderer.on(channel, (_e, payload) => listener(payload));
   },

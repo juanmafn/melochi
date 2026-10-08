@@ -15,6 +15,7 @@ export const toMain = {
   collect: 'ground:collect',
   choose: 'bubble:choose',
   openChat: 'chat:open',
+  toyDone: 'toy:done',
 } as const;
 
 export const chatChannels = {
@@ -36,6 +37,8 @@ export const toOverlay = {
   say: 'game:say',
   skinReload: 'skin:reload',
   panel: 'ui:panel',
+  toy: 'toy:start',
+  hint: 'game:hint',
 } as const;
 
 export const musicChannels = {

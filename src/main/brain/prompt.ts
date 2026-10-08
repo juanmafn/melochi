@@ -40,6 +40,70 @@ export const CHAT_SCHEMA = {
   required: ['reply', 'action', 'value', 'emotion'],
 };
 
+// ---------- Juegos de chat ----------
+// Adivinanzas y trivia: la pregunta sale de una lista fija y el acierto lo comprueba el juego;
+// la IA solo reacciona en personaje (los modelos pequeños se inventan preguntas sin sentido).
+// La historia por turnos sí es libre.
+
+const STORY_RULES: Record<Lang, string> = {
+  es: 'Estáis inventando una HISTORIA POR TURNOS. Continúa la historia con 1 o 2 frases a partir de lo que ha escrito el dueño y anímale a seguir.',
+  en: "You are making up a STORY TOGETHER, taking turns. Continue the story with 1 or 2 sentences from what the owner wrote and encourage them to go on.",
+};
+const STORY_END: Record<Lang, string> = {
+  es: 'Este es el ÚLTIMO turno: cierra la historia con un final divertido.',
+  en: 'This is the LAST turn: wrap up the story with a funny ending.',
+};
+const STORY_START: Record<Lang, string> = {
+  es: 'Tu dueño quiere inventar una historia contigo, por turnos. Empieza tú con una o dos frases de inicio divertidas y pásale el turno.',
+  en: 'Your owner wants to make up a story with you, taking turns. Start with one or two fun opening sentences and pass them the turn.',
+};
+
+const QUIZ_NAME: Record<Lang, Record<'riddles' | 'trivia', string>> = {
+  es: { riddles: 'a las ADIVINANZAS', trivia: 'a TRIVIA MUSICAL' },
+  en: { riddles: 'RIDDLES', trivia: 'MUSIC TRIVIA' },
+};
+
+export interface QuizTurn {
+  kind: 'riddles' | 'trivia';
+  question: string;
+  answer: string;
+  correct: boolean;
+  attempt: number;
+  max: number;
+}
+
+/** Nota para que la IA reaccione a tu respuesta en adivinanzas o trivia (sabe la respuesta y si has acertado). */
+export function quizNote(lang: Lang, q: QuizTurn): string {
+  const last = q.attempt >= q.max;
+  if (lang === 'en') {
+    const what = q.correct
+      ? 'The owner GOT IT RIGHT: congratulate them with lots of drama.'
+      : last
+        ? `The owner got it wrong and it was their LAST try: tell them the answer was "${q.answer}".`
+        : `The owner got it wrong (try ${q.attempt} of ${q.max}): give them a funny hint WITHOUT saying the answer.`;
+    return `(You are playing ${QUIZ_NAME.en[q.kind]}. The question was: "${q.question}". The correct answer is "${q.answer}". ${what} "action" is "none".)`;
+  }
+  const what = q.correct
+    ? 'El dueño HA ACERTADO: felicítale con mucho drama.'
+    : last
+      ? `El dueño ha fallado y era su ÚLTIMO intento: dile que la respuesta era «${q.answer}».`
+      : `El dueño ha fallado (intento ${q.attempt} de ${q.max}): dale una pista graciosa SIN decir la respuesta.`;
+  return `(Estáis jugando ${QUIZ_NAME.es[q.kind]}. La pregunta era: «${q.question}». La respuesta correcta es «${q.answer}». ${what} "action" es "none".)`;
+}
+
+export function storyNote(lang: Lang, last: boolean): string {
+  return `(${STORY_RULES[lang]}${last ? ` ${STORY_END[lang]}` : ''})`;
+}
+
+export function storyStartTurn(ctx: PromptContext): string {
+  return `${stateLine(ctx)}\n${STORY_START[ctx.lang]}`;
+}
+
+/** Quita restos de formato que a veces se cuelan en el texto ("Game: won"). */
+export function stripGameTags(reply: string): string {
+  return reply.replace(/[¡!]?\s*game\s*:\s*(won|lost|playing|none)\s*!?/gi, '').trim();
+}
+
 export const BUBBLE_SCHEMA = {
   type: 'object',
   properties: { reply: { type: 'string' }, emotion: { type: 'string', enum: EMOTIONS } },
@@ -235,8 +299,9 @@ export function stateLine(ctx: PromptContext, now = new Date()): string {
   return `[${t.state}: ${parts.join('. ')}.]`;
 }
 
-export function userTurn(ctx: PromptContext, text: string): string {
-  return `${stateLine(ctx)}\n${T[ctx.lang].message}: ${text}`;
+/** Mensaje tuyo con el estado delante (y, si se está jugando, la nota del juego). */
+export function userTurn(ctx: PromptContext, text: string, gameNote?: string): string {
+  return `${stateLine(ctx)}${gameNote ? `\n${gameNote}` : ''}\n${T[ctx.lang].message}: ${text}`;
 }
 
 export function bubbleTurn(ctx: PromptContext, topic: string): string {

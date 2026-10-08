@@ -2,11 +2,12 @@ import { app, dialog, ipcMain, nativeImage, powerMonitor, protocol, shell, Tray,
 import { join } from 'node:path';
 import { toMain, toOverlay } from '../shared/ipc';
 import { readFileSync } from 'node:fs';
-import type { ChatActionType, InteractionType, Lang, PanelId } from '../shared/types';
+import type { ChatActionType, InteractionType, Lang, PanelId, ToyKind } from '../shared/types';
 import { Brain } from './brain/brain';
 import { Memory } from './brain/memory';
 import { OllamaClient } from './brain/ollama';
 import { ChatWindow } from './chat-window';
+import { Minigames } from './minigames';
 import { loadConfig, type GameConfig } from './config';
 import { Game } from './game';
 import { I18n } from './i18n';
@@ -33,6 +34,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 const INTERACTIONS: InteractionType[] = ['pet', 'tickle', 'poke', 'throw', 'throwHard'];
+const TOYS: ToyKind[] = ['pelota', 'laser'];
 const AUTOSAVE_MS = 30_000;
 
 if (!app.requestSingleInstanceLock()) {
@@ -116,7 +118,14 @@ async function start(): Promise<void> {
       petSpot: () => overlays.petSpot(),
       moodChanged: (mood) => director.onMoodChanged(mood),
       welcomeMischief: () => director.mischief(true),
-      special: (name) => director.special(name),
+      special: (name) => {
+        // Juguetes físicos: se juega en la ventana de la mascota y la recompensa llega al terminar.
+        if (TOYS.includes(name as ToyKind)) {
+          overlays.sendToOwner(toOverlay.toy, { kind: name });
+          return true;
+        }
+        return director.special(name);
+      },
       chatter: (topic, fallback) => brain.chatter(topic, fallback),
     },
     firstRun,
@@ -139,6 +148,8 @@ async function start(): Promise<void> {
     director,
     saveSettings: () => writeSettings(paths.settings, settings),
   });
+
+  const minigames = new Minigames({ game, i18n, overlays, director, api, auth });
 
   // ---------- Cerebro (IA local) y chat ----------
 
@@ -211,6 +222,12 @@ async function start(): Promise<void> {
     adjust: (d) => game.adjust(d),
     changed: () => chatWindow.refresh(),
     text: (k) => i18n.t('chat', k, { model: settings.ollama.model }),
+    quiz: (kind) => i18n.quiz(kind),
+    gameOver: (won) => {
+      const fx = game.config.stats.minijuegos;
+      game.adjust(won ? fx.ganar : fx.perder);
+      if (won) game.rollDrop('juegoChat');
+    },
   });
   director.onNewTrack = (hasOpinion) => {
     if (!hasOpinion) brain.commentSong();
@@ -261,7 +278,7 @@ async function start(): Promise<void> {
   // Acceso para depurar con --inspect (no lo usa el juego).
   if (!app.isPackaged) {
     Object.assign(globalThis, {
-      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode },
+      __melochi: { game, overlays, skins, settings, director, api, musicWindow, brain, chatWindow, ollama, safeMode, minigames },
     });
   }
 
@@ -278,6 +295,15 @@ async function start(): Promise<void> {
     openPanel: (panel: PanelId) => overlays.sendToOwner(toOverlay.panel, { panel, open: true }),
     openMusic: () => musicWindow.open(),
     openChat: () => chatWindow.open(),
+    play: {
+      can: (kind) => minigames.canStart(kind),
+      start: (kind) => minigames.start(kind),
+      canChat: () => !brain.busy && !brain.game,
+      chat: (kind) => {
+        chatWindow.open();
+        void brain.startGame(kind);
+      },
+    },
     ai: {
       enabled: () => settings.ollama.enabled,
       setEnabled: (on) => {
@@ -353,15 +379,31 @@ async function start(): Promise<void> {
   // ---------- IPC del juego ----------
 
   ipcMain.handle(toMain.getSkin, () => skins.manifest());
+  // Un clic en la mascota durante un minijuego (pillarla haciendo trampas, encontrarla) no abre el chat.
+  let suppressChatUntil = 0;
   ipcMain.on(toMain.interact, (_e, type: InteractionType) => {
-    if (INTERACTIONS.includes(type)) game.interact(type);
+    if (!INTERACTIONS.includes(type)) return;
+    if (type === 'poke' && minigames.onPoke()) {
+      suppressChatUntil = Date.now() + 1500;
+      return;
+    }
+    game.interact(type);
   });
   ipcMain.on(toMain.useItem, (_e, index: number) => {
     if (Number.isInteger(index)) game.useItem(index);
   });
   ipcMain.on(toMain.collect, (_e, id: string) => game.collect(String(id)));
-  ipcMain.on(toMain.choose, (_e, promptId: string, choice: string) => void director.answer(String(promptId), String(choice)));
-  ipcMain.on(toMain.openChat, () => chatWindow.open());
+  ipcMain.on(toMain.choose, (_e, promptId: string, choice: string) => {
+    if (!minigames.answer(String(promptId), String(choice))) void director.answer(String(promptId), String(choice));
+  });
+  ipcMain.on(toMain.openChat, () => {
+    if (minigames.active === 'hide' || Date.now() < suppressChatUntil) return;
+    chatWindow.open();
+  });
+  ipcMain.on(toMain.toyDone, (_e, kind: ToyKind) => {
+    if (kind === 'pelota') game.interact('fetch');
+    else if (kind === 'laser') game.interact('laser');
+  });
   ipcMain.on(toMain.contextMenu, (e) => {
     const win = BrowserWindow.fromWebContents(e.sender);
     if (!win) return;
@@ -390,6 +432,8 @@ async function start(): Promise<void> {
     last = now;
   }, 1000);
   setInterval(persist, AUTOSAVE_MS);
+  // Los minijuegos (sobre todo las pistas del escondite) necesitan ir algo más rápido que el bucle principal.
+  setInterval(() => minigames.tick(), 400);
 
   watchDir(paths.config, () => {
     try {

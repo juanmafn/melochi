@@ -459,6 +459,12 @@ const ANIMS = {
       },
     }),
   },
+  hide_peek: {
+    n: 6,
+    fps: 3,
+    loop: true,
+    f: (i) => ({ look: [-1, -1, 0, 1, 1, 0][i], eyes: i === 2 ? 'blink' : 'open', mouth: 'flat', antenna: [-0.2, -0.2, 0, 0.2, 0.2, 0][i] }),
+  },
   talk: { n: 4, fps: 8, f: (i) => ({ mouth: 'open', mouthK: [0.9, 0.3, 0.7, 0.2][i], antenna: sin(i, 4, 0.1), sy: 1 + sin(i, 4, 0.015) }) },
   petted: {
     n: 6,

@@ -57,6 +57,8 @@ const LOOT_FOR: Partial<Record<InteractionType, string>> = {
   tickle: 'tickle',
   throw: 'throw',
   throwHard: 'throw',
+  fetch: 'throw',
+  laser: 'throw',
 };
 /** Tablas de actividades directas, que se sustituyen por la de reconciliación cuando está cabreada. */
 const LOOT_TABLES_INTERACTIVE: Record<string, true> = { pet: true, tickle: true, throw: true };
@@ -352,6 +354,12 @@ export class Game {
         break;
       case 'throwHard':
         this.react({ anim: 'angry', sound: 'grunido', bubble: this.i18n.bubble('thrownHard') });
+        break;
+      case 'fetch':
+        this.react({ anim: 'happy', sound: 'risa', bubble: this.i18n.bubble('fetchDone') }, true);
+        break;
+      case 'laser':
+        this.react({ anim: 'happy', sound: 'risa', bubble: this.i18n.bubble('laserDone') }, true);
         break;
     }
 

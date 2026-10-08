@@ -54,6 +54,8 @@ export class MusicDirector {
   private polling = false;
   private busy = false;
   private lastError = '';
+  /** Un minijuego está usando Spotify (adivina la canción): sin reacciones, sugerencias ni travesuras. */
+  suspended = false;
 
   constructor(
     private game: Game,
@@ -92,8 +94,8 @@ export class MusicDirector {
     if (now >= this.nextPollAt) void this.poll();
     if (this.prompt && now > this.prompt.expiresAt) this.prompt = null;
 
-    // Si no estás delante, ni sugiere ni hace travesuras.
-    if (!this.userActive) return;
+    // Si no estás delante (o un minijuego está usando Spotify), ni sugiere ni hace travesuras.
+    if (!this.userActive || this.suspended) return;
     const mood = this.game.mood;
     const silence = this.cfg.sugerencias.silencioMinutos * MINUTE;
     if (mood.musica?.modo === 'sugerir' && !this.state?.isPlaying && now - this.silenceSince > silence) void this.suggest();
@@ -143,6 +145,7 @@ export class MusicDirector {
   private onPlayback(prev: PlaybackState | null, cur: PlaybackState | null): void {
     const now = Date.now();
     if (cur?.isPlaying) this.silenceSince = now;
+    if (this.suspended) return;
     const prevTrack = prev?.track;
     const curTrack = cur?.track;
     if (!curTrack || curTrack.uri === prevTrack?.uri) return;
@@ -320,6 +323,11 @@ export class MusicDirector {
     }
     setTimeout(() => void this.poll(true), 1500);
     return 'ok';
+  }
+
+  /** Dispositivo donde poner música (el activo o un ordenador), o null. */
+  device(): Promise<string | null> {
+    return this.ensureDevice();
   }
 
   private async ensureDevice(): Promise<string | null> {

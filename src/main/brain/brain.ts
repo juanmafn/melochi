@@ -1,4 +1,14 @@
-import type { BrainConfig, BrainStatus, ChatActionType, ChatMessage, GameView, Lang, MoodDef, Reaction } from '../../shared/types';
+import type {
+  BrainConfig,
+  BrainStatus,
+  ChatActionType,
+  ChatGameKind,
+  ChatMessage,
+  GameView,
+  Lang,
+  MoodDef,
+  Reaction,
+} from '../../shared/types';
 import { extractMusicQuery, userAsked } from './intent';
 import type { Memory } from './memory';
 import type { OllamaClient, OllamaMessage } from './ollama';
@@ -10,6 +20,10 @@ import {
   MEMORY_SCHEMA,
   bubbleTurn,
   memoryPrompt,
+  quizNote,
+  storyNote,
+  storyStartTurn,
+  stripGameTags,
   systemPrompt,
   userTurn,
   type Emotion,
@@ -37,7 +51,38 @@ export interface BrainHooks {
   changed(): void;
   /** Textos de la sección "chat" de los idiomas. */
   text(key: string): string;
+  /** Preguntas de adivinanzas o trivia (lista fija, con sus respuestas válidas). */
+  quiz(kind: 'riddles' | 'trivia'): Quiz[];
+  /** Fin de un juego de chat: premio si has ganado. */
+  gameOver(won: boolean): void;
 }
+
+export interface Quiz {
+  q: string;
+  /** Respuestas válidas (la primera es la que se dice). */
+  a: string[];
+}
+
+interface ChatGame {
+  kind: ChatGameKind;
+  turns: number;
+  /** Pregunta en curso (adivinanzas y trivia). */
+  quiz?: Quiz;
+  attempts: number;
+}
+
+/** Intentos para acertar en adivinanzas y trivia. */
+const QUIZ_TRIES: Record<'riddles' | 'trivia', number> = { riddles: 3, trivia: 2 };
+/** Turnos tuyos que dura la historia. */
+const STORY_TURNS = 6;
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9ñ ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const MAX_USER_TEXT = 500;
 const MAX_REPLY = 400;
@@ -68,6 +113,8 @@ function parseJson(raw: string): Record<string, unknown> | null {
   }
 }
 
+const pickOne = <T>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
+
 const cleanReply = (s: unknown) =>
   String(s ?? '')
     .trim()
@@ -84,6 +131,8 @@ export class Brain {
   private summarizing = false;
   private lastUserAt = 0;
   private recentUserTimes: number[] = [];
+  /** Juego de chat en curso. */
+  game: ChatGame | null = null;
 
   constructor(
     private ollama: OllamaClient,
@@ -142,6 +191,120 @@ export class Brain {
     }
   }
 
+  // ---------- Juegos de chat ----------
+
+  /**
+   * Empieza un juego en el chat. Adivinanzas y trivia: la pregunta sale de una lista fija y funcionan
+   * también sin IA. La historia necesita la IA.
+   */
+  async startGame(kind: ChatGameKind): Promise<void> {
+    if (this.busy) return;
+    if (kind !== 'story') {
+      const quiz = pickOne(this.hooks.quiz(kind));
+      if (!quiz) return;
+      this.game = { kind, turns: 0, attempts: 0, quiz };
+      this.push('pet', `${this.hooks.text(kind === 'riddles' ? 'riddleIntro' : 'triviaIntro')} ${quiz.q}`);
+      this.hooks.react({ anim: 'happy', sound: 'saludo' });
+      return;
+    }
+    if (this.status !== 'online') {
+      this.push('system', this.hooks.text('gameNeedsAi'));
+      return;
+    }
+    this.game = { kind, turns: 0, attempts: 0 };
+    this.busy = true;
+    this.hooks.changed();
+    try {
+      await this.waitForBubble();
+      const ctx = this.ctx();
+      const raw = await this.ollama.chat(
+        [
+          { role: 'system', content: systemPrompt(ctx) },
+          { role: 'user', content: storyStartTurn(ctx) },
+        ],
+        { format: CHAT_SCHEMA, maxTokens: this.hooks.config().maxTokensChat, temperature: 0.9 },
+      );
+      this.push('pet', stripGameTags(cleanReply(parseJson(raw)?.reply ?? raw)) || '…');
+      this.hooks.react({ anim: 'happy', sound: 'saludo' });
+    } catch (err) {
+      console.error('[cerebro] No se pudo empezar la historia:', err);
+      this.game = null;
+      this.push('system', this.hooks.text('error'));
+    } finally {
+      this.busy = false;
+      this.hooks.changed();
+    }
+  }
+
+  private endGame(won: boolean): void {
+    this.game = null;
+    this.hooks.gameOver(won);
+  }
+
+  /** Espera a que termine un bocadillo que se esté generando (Ollama atiende de uno en uno). */
+  private async waitForBubble(): Promise<void> {
+    for (let i = 0; this.generating && i < 300; i++) await new Promise((r) => setTimeout(r, 200));
+  }
+
+  /** Historial para el modelo: los mensajes anteriores al actual, sin avisos del sistema. */
+  private history(): OllamaMessage[] {
+    return this.messages
+      .slice(0, -1)
+      .filter((m) => m.role !== 'system')
+      .slice(-this.hooks.config().historialMensajes)
+      .map<OllamaMessage>((m) =>
+        m.role === 'user'
+          ? { role: 'user', content: m.text }
+          : { role: 'assistant', content: JSON.stringify({ reply: m.text, action: 'none', value: '', emotion: 'neutral' }) },
+      );
+  }
+
+  /**
+   * Respuesta a una adivinanza o pregunta de trivia. El acierto lo decide el juego comparando con las
+   * respuestas válidas; la IA (si está) solo reacciona en personaje sabiendo la respuesta y el resultado.
+   */
+  private async answerQuiz(text: string): Promise<void> {
+    const g = this.game!;
+    const quiz = g.quiz!;
+    const kind = g.kind as 'riddles' | 'trivia';
+    const max = QUIZ_TRIES[kind];
+    g.attempts++;
+    const said = ` ${norm(text)} `;
+    const correct = quiz.a.some((a) => said.includes(` ${norm(a)} `));
+    const over = correct || g.attempts >= max;
+
+    let reply = '';
+    let emotion: Emotion = correct ? 'happy' : over ? 'happy' : 'neutral';
+    if (this.status === 'online') {
+      this.busy = true;
+      this.hooks.changed();
+      try {
+        await this.waitForBubble();
+        const ctx = this.ctx();
+        const note = quizNote(ctx.lang, { kind, question: quiz.q, answer: quiz.a[0], correct, attempt: g.attempts, max });
+        const raw = await this.ollama.chat(
+          [{ role: 'system', content: systemPrompt(ctx) }, ...this.history(), { role: 'user', content: userTurn(ctx, text, note) }],
+          { format: CHAT_SCHEMA, maxTokens: this.hooks.config().maxTokensChat, temperature: this.hooks.config().temperatura },
+        );
+        const json = parseJson(raw);
+        reply = stripGameTags(cleanReply(json?.reply));
+        if (EMOTIONS.includes(json?.emotion as Emotion)) emotion = json!.emotion as Emotion;
+      } catch (err) {
+        console.warn('[cerebro] Reacción del juego fallida:', String(err));
+      } finally {
+        this.busy = false;
+      }
+    }
+    if (!reply) reply = correct ? this.hooks.text('riddleRight') : over ? this.hooks.text('riddleLost') : this.hooks.text('riddleWrong');
+    // Si has perdido, la respuesta tiene que aparecer (por si la IA no la dice).
+    if (!correct && over && !norm(reply).includes(norm(quiz.a[0]))) reply += ` ${this.hooks.text('answerWas')} ${quiz.a[0]}`;
+
+    this.push('pet', reply);
+    this.hooks.react({ anim: EMOTION_ANIM[emotion], sound: correct ? 'risa' : over ? 'risa' : 'saludo' });
+    if (over) this.endGame(correct);
+    this.hooks.changed();
+  }
+
   // ---------- Chat ----------
 
   async send(raw: string): Promise<void> {
@@ -159,6 +322,11 @@ export class Brain {
     const fx = this.hooks.config().efectosPorMensaje;
     this.hooks.adjust(Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, (v ?? 0) * factor])));
 
+    if (this.game?.quiz) {
+      await this.answerQuiz(text);
+      return;
+    }
+
     if (this.status !== 'online') {
       const key = this.status === 'disabled' ? 'offlineDisabled' : this.status === 'nomodel' ? 'offlineNoModel' : 'offline';
       this.push('pet', this.hooks.text(key));
@@ -169,26 +337,20 @@ export class Brain {
     this.busy = true;
     this.hooks.changed();
     try {
-      // Si estaba escribiendo un bocadillo, espera a que termine (Ollama atiende de uno en uno).
-      for (let i = 0; this.generating && i < 300; i++) await new Promise((r) => setTimeout(r, 200));
+      await this.waitForBubble();
       const cfg = this.hooks.config();
       const ctx = this.ctx();
-      // Historial: los mensajes anteriores al actual, sin los avisos del sistema.
-      const history = this.messages
-        .slice(0, -1)
-        .filter((m) => m.role !== 'system')
-        .slice(-cfg.historialMensajes)
-        .map<OllamaMessage>((m) =>
-          m.role === 'user'
-            ? { role: 'user', content: m.text }
-            : { role: 'assistant', content: JSON.stringify({ reply: m.text, action: 'none', emotion: 'neutral' }) },
-        );
+      // Historia por turnos: la IA continúa y la cierra al llegar al último turno.
+      const story = this.game?.kind === 'story' ? this.game : null;
+      if (story) story.turns++;
+      const note = story ? storyNote(ctx.lang, story.turns >= STORY_TURNS) : undefined;
       const raw = await this.ollama.chat(
-        [{ role: 'system', content: systemPrompt(ctx) }, ...history, { role: 'user', content: userTurn(ctx, text) }],
+        [{ role: 'system', content: systemPrompt(ctx) }, ...this.history(), { role: 'user', content: userTurn(ctx, text, note) }],
         { format: CHAT_SCHEMA, maxTokens: cfg.maxTokensChat, temperature: cfg.temperatura },
       );
       const json = parseJson(raw);
-      const reply = cleanReply(json?.reply ?? raw);
+      if (story && story.turns >= STORY_TURNS) this.endGame(true);
+      const reply = stripGameTags(cleanReply(json?.reply ?? raw));
       const action = ACTIONS.includes(json?.action as ChatActionType) ? (json!.action as ChatActionType) : 'none';
       const emotion = EMOTIONS.includes(json?.emotion as Emotion) ? (json!.emotion as Emotion) : 'neutral';
 

@@ -6,6 +6,8 @@ type Section = 'menu' | 'ui' | 'setup' | 'music' | 'chat';
 
 type LocaleData = Record<Section, Record<string, string>> & {
   bubbles: Record<string, string[]>;
+  riddles?: { q: string; a: string[] }[];
+  trivia?: { q: string; a: string[] }[];
 };
 
 type Vars = Record<string, string | number>;
@@ -39,6 +41,11 @@ export class I18n {
 
   t(section: Section, key: string, vars?: Vars): string {
     return fill(this.section(section)[key] ?? key, vars);
+  }
+
+  /** Preguntas de adivinanzas o trivia musical, con sus respuestas válidas. */
+  quiz(kind: 'riddles' | 'trivia'): { q: string; a: string[] }[] {
+    return this.data[this.lang][kind] ?? this.data.es[kind] ?? [];
   }
 
   hasBubble(key: string): boolean {

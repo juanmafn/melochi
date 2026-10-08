@@ -126,7 +126,9 @@ export interface LootConfig {
   tablas: Record<string, LootTable>;
 }
 
-export type InteractionType = 'pet' | 'tickle' | 'poke' | 'throw' | 'throwHard';
+export type InteractionType = 'pet' | 'tickle' | 'poke' | 'throw' | 'throwHard' | 'fetch' | 'laser';
+
+export type ToyKind = 'pelota' | 'laser';
 
 export interface StatsConfig {
   /** Puntos que baja cada stat por minuto. */
@@ -155,6 +157,17 @@ export interface StatsConfig {
   rechazoCariciasCabreada: number;
   /** Minutos mínimos entre travesuras (musicales o de escritorio). */
   travesuraCooldownMinutos: number;
+  /** Recompensas de los minijuegos. */
+  minijuegos: {
+    /** Si ganas tú. */
+    ganar: StatDelta;
+    /** Si gana ella (se lo pasa bien igualmente). */
+    perder: StatDelta;
+    /** Probabilidad de que haga trampas en piedra-papel-tijera si está mosqueada. */
+    trampaRps: number;
+    /** Mosqueo a partir del cual puede hacer trampas. */
+    trampaDesdeMosqueo: number;
+  };
   /** Modos seguros: no molestar con algo a pantalla completa o en llamadas. */
   modosSeguros: {
     pantallaCompleta: boolean;
@@ -323,6 +336,21 @@ export interface OwnMessage {
   appear?: 'poof';
   /** Llega mientras la están arrastrando. */
   dragging?: boolean;
+  /** Escondite: se queda asomando por un borde de la pantalla o por detrás de la barra de tareas. */
+  hide?: HideEdge;
+}
+
+export type HideEdge = 'left' | 'right' | 'bottom';
+
+export type MinigameKind = 'rps' | 'song' | 'hide';
+/** Juegos en el chat (los conduce la IA). */
+export type ChatGameKind = 'riddles' | 'trivia' | 'story';
+
+/** Pista "frío/caliente" del escondite, junto al cursor (coordenadas locales). */
+export interface HintMessage {
+  x: number;
+  y: number;
+  text: string;
 }
 
 export type PanelId = 'inventory' | 'stats';

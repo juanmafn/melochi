@@ -49,7 +49,8 @@ export class Bubble {
     this.hasChoices = !!choices?.length && !!promptId;
     this.root.classList.toggle('interactive', this.hasChoices);
     if (this.hasChoices) {
-      const row = el('div', 'bubble-choices');
+      // Con más de 3 opciones (adivina la canción), en columna.
+      const row = el('div', `bubble-choices${choices!.length > 3 ? ' vertical' : ''}`);
       for (const c of choices!) {
         const btn = el('button', `bubble-choice choice-${c.id}`, c.label);
         btn.addEventListener('click', () => {

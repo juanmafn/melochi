@@ -123,6 +123,37 @@ canvas {
   filter: brightness(0.95);
 }
 
+.bubble-choices.vertical {
+  flex-direction: column;
+}
+
+.bubble-choices.vertical .bubble-choice {
+  white-space: normal;
+  text-align: left;
+  font-weight: 600;
+}
+
+.bubble-choices.vertical .bubble-choice:not(:hover) {
+  background: var(--panel-border);
+  color: var(--panel-text);
+}
+
+.hint {
+  position: absolute;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(30, 30, 40, 0.85);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.hint.visible {
+  opacity: 1;
+}
+
 /* ---------- Objetos en el suelo ---------- */
 
 .ground-item {

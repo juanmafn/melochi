@@ -88,14 +88,14 @@
     {
       "id": "pelota", "categoria": "juguete", "rareza": "comun", "usos": 5, "animacion": "happy",
       "nombre": { "es": "Pelota", "en": "Ball" },
-      "descripcion": { "es": "Para jugar a lanzarla. 5 usos.", "en": "For playing fetch. 5 uses." },
-      "efectos": { "stats": { "diversion": 10 } }
+      "descripcion": { "es": "Lánzasela y te la trae. 5 usos.", "en": "Throw it and she brings it back. 5 uses." },
+      "efectos": { "especial": "pelota" }
     },
     {
       "id": "laser", "categoria": "juguete", "rareza": "rara", "usos": 10, "animacion": "happy",
       "nombre": { "es": "Puntero láser", "en": "Laser pointer" },
-      "descripcion": { "es": "¡El puntito rojo! 10 usos.", "en": "The red dot! 10 uses." },
-      "efectos": { "stats": { "diversion": 20 } }
+      "descripcion": { "es": "¡El puntito rojo! Persigue tu cursor 30 s. 10 usos.", "en": "The red dot! Chases your cursor for 30 s. 10 uses." },
+      "efectos": { "especial": "laser" }
     },
     {
       "id": "peluche", "categoria": "juguete", "rareza": "rara", "permanente": true, "cooldownMinutos": 60, "animacion": "petted",

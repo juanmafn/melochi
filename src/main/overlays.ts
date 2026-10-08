@@ -2,7 +2,7 @@ import { BrowserWindow, ipcMain, screen, type Display, type WebContents } from '
 import { join } from 'node:path';
 import { clamp, displayContaining, groundY } from '../shared/displays';
 import { toMain, toOverlay } from '../shared/ipc';
-import type { DisplayInfo, InteractionType, OverlayInit, OwnMessage, PetPose } from '../shared/types';
+import type { DisplayInfo, HideEdge, InteractionType, OverlayInit, OwnMessage, PetPose } from '../shared/types';
 import type { PetSpot } from './game';
 import type { Paths } from './paths';
 import { isPrimaryMouseDown } from './win32';
@@ -222,6 +222,23 @@ export class OverlayManager {
       d = other;
       x = d.workArea.x + d.workArea.width - 150;
     }
+    this.setOwner(d.id, this.restingPose(d, x, groundY(d)), { appear: 'poof' });
+  }
+
+  /** Monitores donde puede estar la mascota ahora (todos menos el que está a pantalla completa). */
+  availableDisplays(): DisplayInfo[] {
+    return this.displays.filter((d) => d.id !== this.hiddenDisplay);
+  }
+
+  /** Esconde a la mascota asomando por un borde (escondite). (x, y) globales del punto de apoyo. */
+  hidePet(displayId: number, x: number, y: number, edge: HideEdge): void {
+    this.cancelDrag();
+    this.setOwner(displayId, { x, y, vx: 0, vy: 0, state: 'idle', facing: edge === 'right' ? -1 : 1, goal: null }, { appear: 'poof', hide: edge });
+  }
+
+  /** Pone a la mascota en el suelo de un monitor, en x (global), con efecto de aparición. */
+  placeOnGround(displayId: number, x: number): void {
+    const d = this.display(displayId) ?? this.primary();
     this.setOwner(d.id, this.restingPose(d, x, groundY(d)), { appear: 'poof' });
   }
 

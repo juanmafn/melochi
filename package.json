@@ -1,7 +1,7 @@
 {
   "name": "melochi",
   "productName": "Melochi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mascota de escritorio tipo Tamagotchi que controla tu Spotify según su estado de ánimo",
   "author": "Juanma",
   "private": true,
@@ -50,9 +50,18 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "config", "to": "defaults/config" },
-      { "from": "skins", "to": "defaults/skins" },
-      { "from": "locales", "to": "defaults/locales" }
+      {
+        "from": "config",
+        "to": "defaults/config"
+      },
+      {
+        "from": "skins",
+        "to": "defaults/skins"
+      },
+      {
+        "from": "locales",
+        "to": "defaults/locales"
+      }
     ],
     "asar": true,
     "asarUnpack": [
@@ -60,7 +69,14 @@
       "node_modules/@koromix/**"
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png",
       "executableName": "Melochi"
     },
